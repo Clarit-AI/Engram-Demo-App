@@ -1,30 +1,17 @@
 import { motion } from 'framer-motion';
+import { ghostHeat } from '../lib/colors';
+import { riffle } from '../lib/springs';
 
 interface StackLayersProps {
   count: number;
   rifled: boolean;
-}
-
-/**
- * Waste color progression for ghost layers (lightest to darkest)
- * Creates depth perception - layers further back are darker/stronger
- */
-const WASTE_COLORS = [
-  'bg-waste-50',
-  'bg-waste-100',
-  'bg-waste-200',
-  'bg-waste-300',
-  'bg-waste-400',
-] as const;
-
-function getLayerColor(layerIndex: number): string {
-  const colorIndex = Math.min(layerIndex, WASTE_COLORS.length - 1);
-  return WASTE_COLORS[colorIndex];
+  /** Front-card heat anchor; each layer is cooled by its depth. */
+  resendCount: number;
 }
 
 function getLayerOpacity(layerIndex: number): number {
-  const baseOpacity = 0.5;
-  const decay = 0.04;
+  const baseOpacity = 0.55;
+  const decay = 0.045;
   return Math.max(0.1, baseOpacity - layerIndex * decay);
 }
 
@@ -34,7 +21,13 @@ function getHoverOffset(layerIndex: number): number {
   return baseOffset * logFactor * (layerIndex + 1);
 }
 
-export function StackLayers({ count, rifled }: StackLayersProps) {
+/**
+ * Ghost layers beneath a MessageCard. Each layer takes a cooler heat-tint
+ * than the card above it — so a heavily-resent message shows a warm front
+ * card with progressively cooler history piled behind it, communicating
+ * "this message has been hot longer than the others in this pile."
+ */
+export function StackLayers({ count, rifled, resendCount }: StackLayersProps) {
   if (count <= 0) return null;
 
   const maxVisibleLayers = 8;
@@ -47,39 +40,40 @@ export function StackLayers({ count, rifled }: StackLayersProps) {
         const isLastLayer = i === visibleLayers - 1 && count > maxVisibleLayers;
         const remainingCount = count - maxVisibleLayers;
 
-        const colorClass = getLayerColor(layerIndex);
         const opacity = getLayerOpacity(layerIndex);
+        const tint = ghostHeat(resendCount, layerIndex);
 
-        // Z-index decreases as we go deeper (layer 0 is closest to main card, z-9)
-        // Main card is z-10, so ghosts range from z-9 down to z-1
+        // z-index decreases with depth (main card is z-10)
         const zIndex = 9 - layerIndex;
 
         return (
           <motion.div
             key={`layer-${layerIndex}`}
-            className={`absolute inset-0 rounded-xl border border-waste-200 ${colorClass}`}
+            className="absolute inset-0 rounded-xl ghost-layer"
             style={{
               zIndex,
               opacity,
               pointerEvents: 'none',
+              background: `linear-gradient(180deg, ${tint.bgFrom}, ${tint.bgTo})`,
+              border: `1px solid ${tint.border}`,
+              boxShadow: `0 2px 6px -2px ${tint.shadow}`,
             }}
             initial={false}
             animate={{
-              // Fan out on hover - shift down and slightly offset
               y: rifled ? getHoverOffset(layerIndex) : 0,
               x: rifled ? layerIndex * 1.5 : 0,
               scale: rifled ? 1 - layerIndex * 0.01 : 1,
             }}
             transition={{
-              type: 'spring',
-              stiffness: 300,
-              damping: 25,
-              mass: 0.8,
+              ...riffle,
               delay: layerIndex * 0.015,
             }}
           >
             {isLastLayer && remainingCount > 0 && (
-              <div className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-waste-500 text-[10px] font-medium text-white shadow-sm">
+              <div
+                className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold text-white shadow-sm font-mono tabular-nums"
+                style={{ background: 'var(--burn-500)' }}
+              >
                 +{remainingCount}
               </div>
             )}

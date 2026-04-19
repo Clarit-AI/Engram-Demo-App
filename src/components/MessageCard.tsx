@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { StackLayers } from './StackLayers';
+import { heatTint, roleStripe } from '../lib/colors';
+import { cascade } from '../lib/springs';
 
 interface MessageCardProps {
   role: string;
@@ -16,34 +18,8 @@ export function MessageCard({ role, content, tokenCount, resendCount, isNew, isS
   const [rifled, setRifled] = useState(false);
   const ghostLayers = isStateful ? 0 : Math.min(Math.max(resendCount - 1, 0), 6);
 
-  const bgClass =
-    isStateful || resendCount <= 1
-      ? 'bg-bg-surface'
-      : resendCount <= 3
-        ? 'bg-waste-50'
-        : resendCount <= 6
-          ? 'bg-waste-100'
-          : resendCount <= 9
-            ? 'bg-waste-200'
-            : 'bg-waste-300';
-
-  const counterColor =
-    resendCount <= 2
-      ? 'text-text-muted'
-      : resendCount <= 5
-        ? 'text-waste-400'
-        : resendCount <= 9
-          ? 'text-waste-500 font-semibold'
-          : 'text-waste-600 font-semibold';
-
-  const heatIntensity =
-    resendCount <= 1
-      ? 'bg-waste-100'
-      : resendCount <= 3
-        ? 'bg-waste-200'
-        : resendCount <= 6
-          ? 'bg-waste-400'
-          : 'bg-waste-600';
+  const tint = heatTint(isStateful ? 1 : resendCount);
+  const stripe = roleStripe(role === 'user' ? 'user' : 'assistant');
 
   const stackedPadding = ghostLayers * 3;
   const stackedMargin = ghostLayers * 2;
@@ -60,42 +36,60 @@ export function MessageCard({ role, content, tokenCount, resendCount, isNew, isS
         marginLeft: rifled ? rifledMargin : stackedMargin,
       }}
       exit={{ opacity: 0, y: -10 }}
-      transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+      transition={cascade}
       className="relative overflow-visible"
       onMouseEnter={() => ghostLayers > 0 && setRifled(true)}
       onMouseLeave={() => setRifled(false)}
     >
-      {/* Ghost layers - rendered behind card, extend beyond boundaries */}
+      {/* Ghost layers */}
       <div className="absolute inset-0 pointer-events-none overflow-visible">
-        <StackLayers count={ghostLayers} rifled={rifled} />
+        <StackLayers count={ghostLayers} rifled={rifled} resendCount={resendCount} />
       </div>
 
-      {/* Main card - rendered on top of ghost layers */}
-      <div
-        className={`relative z-10 rounded-xl border ${
-          isNew
-            ? 'border-l-clarit-500 border-l-[3px] border-border-default'
-            : 'border-border-default'
-        } ${bgClass} p-3 cursor-pointer transition-colors duration-300`}
+      {/* Main card */}
+      <motion.div
+        className="relative z-10 rounded-xl border p-3 cursor-pointer"
+        style={{
+          background: `linear-gradient(180deg, ${tint.bgFrom}, ${tint.bgTo})`,
+          borderColor: tint.border,
+          borderLeft: `3px solid ${stripe}`,
+          boxShadow: resendCount > 2
+            ? `0 6px 18px -10px ${tint.shadow}`
+            : 'none',
+        }}
+        animate={{
+          filter: rifled ? 'brightness(1.03) saturate(1.05)' : 'brightness(1) saturate(1)',
+        }}
+        transition={{ duration: 0.2 }}
         onClick={() => setExpanded(!expanded)}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">
+            <span
+              className="text-[10px] font-bold uppercase tracking-[0.12em] font-mono"
+              style={{ color: tint.accent }}
+            >
               {role}
             </span>
             {isNew && (
-              <span className="text-[9px] font-bold text-clarit-600 bg-clarit-100 px-1.5 py-0.5 rounded">
+              <span
+                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{
+                  color: 'var(--clarit-700)',
+                  background: 'var(--clarit-100)',
+                }}
+              >
                 NEW
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             {!isStateful && resendCount > 1 && (
-              <div className="w-[3px] h-5 rounded-full overflow-hidden bg-bg-secondary">
+              <div className="w-[3px] h-5 rounded-full overflow-hidden bg-white/50">
                 <motion.div
-                  className={`w-full rounded-full ${heatIntensity}`}
+                  className="w-full rounded-full"
+                  style={{ background: tint.accent }}
                   initial={{ height: '20%' }}
                   animate={{ height: `${Math.min(resendCount * 10, 100)}%` }}
                   transition={{ duration: 0.3 }}
@@ -107,7 +101,8 @@ export function MessageCard({ role, content, tokenCount, resendCount, isNew, isS
                 key={resendCount}
                 initial={{ y: -8, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className={`font-mono text-xs ${counterColor}`}
+                className="font-mono text-[11px] font-semibold tabular-nums"
+                style={{ color: tint.accent }}
               >
                 ×{resendCount}
               </motion.span>
@@ -122,11 +117,17 @@ export function MessageCard({ role, content, tokenCount, resendCount, isNew, isS
 
         {/* Token count */}
         <div className="mt-2">
-          <span className="text-[10px] text-text-muted bg-bg-secondary px-1.5 py-0.5 rounded font-mono">
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded font-mono tabular-nums"
+            style={{
+              color: 'var(--text-muted)',
+              background: 'rgba(255,255,255,0.55)',
+            }}
+          >
             {tokenCount} tok
           </span>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

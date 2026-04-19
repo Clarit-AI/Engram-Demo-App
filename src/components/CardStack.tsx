@@ -9,6 +9,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMemo } from 'react';
 import { User, Bot, Layers } from 'lucide-react';
+import { heatTint, roleStripe, type HeatTint } from '../lib/colors';
+import { cascade } from '../lib/springs';
 
 export interface StackCard {
   id: string;
@@ -32,10 +34,8 @@ interface CardTransform {
 }
 
 interface CardColors {
-  bg: string;
-  border: string;
-  badge: string;
-  icon: string;
+  tint: HeatTint;
+  stripe: string;
 }
 
 /**
@@ -62,49 +62,14 @@ function getCardTransform(cardId: string, index: number): CardTransform {
 }
 
 /**
- * Get color scheme based on resend count (waste intensity)
+ * Heat-tint card colors. Role now identified by a left stripe so the
+ * thermal ramp owns the whole card background — pile literally heats up.
  */
 function getCardColors(resendCount: number, role: 'user' | 'assistant'): CardColors {
-  if (role === 'user') {
-    // User cards - teal/green clarit theme
-    return {
-      bg: 'bg-gradient-to-br from-teal-50 to-emerald-50',
-      border: 'border-teal-200',
-      badge: 'bg-teal-100 text-teal-700',
-      icon: 'text-teal-600',
-    };
-  }
-
-  // Assistant cards - amber/orange waste theme with intensity based on resend count
-  if (resendCount === 0) {
-    return {
-      bg: 'bg-gradient-to-br from-amber-50 to-orange-50',
-      border: 'border-amber-200',
-      badge: 'bg-amber-100 text-amber-700',
-      icon: 'text-amber-600',
-    };
-  } else if (resendCount <= 2) {
-    return {
-      bg: 'bg-gradient-to-br from-amber-100 to-orange-100',
-      border: 'border-amber-300',
-      badge: 'bg-amber-200 text-amber-800',
-      icon: 'text-amber-700',
-    };
-  } else if (resendCount <= 5) {
-    return {
-      bg: 'bg-gradient-to-br from-orange-100 to-amber-200',
-      border: 'border-orange-300',
-      badge: 'bg-orange-200 text-orange-800',
-      icon: 'text-orange-700',
-    };
-  } else {
-    return {
-      bg: 'bg-gradient-to-br from-orange-200 to-amber-300',
-      border: 'border-orange-400',
-      badge: 'bg-orange-300 text-orange-900',
-      icon: 'text-orange-800',
-    };
-  }
+  return {
+    tint: heatTint(resendCount + 1),
+    stripe: roleStripe(role),
+  };
 }
 
 interface StackedCardProps {
@@ -150,12 +115,7 @@ function StackedCard({
         y: 100,
         rotate: transform.rotation + 10,
       }}
-      transition={{
-        type: 'spring',
-        stiffness: 400,
-        damping: 25,
-        mass: 1,
-      }}
+      transition={cascade}
       className="absolute left-1/2 top-1/2 w-[280px] -translate-x-1/2 -translate-y-1/2"
       style={{
         zIndex: totalCards - index,
@@ -163,37 +123,46 @@ function StackedCard({
       }}
     >
       <div
-        className={`
-          relative rounded-xl border-2 shadow-lg
-          ${colors.bg} ${colors.border}
-          ${isTopCard ? 'shadow-xl' : 'shadow-md'}
-          transition-shadow duration-200
-        `}
+        className="relative rounded-xl border transition-shadow duration-200"
+        style={{
+          background: `linear-gradient(160deg, ${colors.tint.bgFrom}, ${colors.tint.bgTo})`,
+          borderColor: colors.tint.border,
+          borderLeft: `3px solid ${colors.stripe}`,
+          boxShadow: isTopCard
+            ? `0 20px 40px -18px ${colors.tint.shadow}`
+            : `0 8px 16px -12px ${colors.tint.shadow}`,
+        }}
       >
         {/* Card header */}
         <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className={`${colors.icon}`}>
+            <div style={{ color: colors.stripe }}>
               {card.role === 'user' ? (
                 <User className="h-4 w-4" />
               ) : (
                 <Bot className="h-4 w-4" />
               )}
             </div>
-            <span className={`text-xs font-semibold uppercase tracking-wide ${colors.icon}`}>
+            <span
+              className="text-[11px] font-semibold uppercase tracking-[0.12em] font-mono"
+              style={{ color: colors.tint.accent }}
+            >
               {card.role}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Token count */}
-            <span className="font-mono text-[10px] text-gray-500">
+            <span className="font-mono text-[10px] text-text-muted tabular-nums">
               {card.tokens.toLocaleString()} tok
             </span>
-
-            {/* Resend count badge */}
             {card.resendCount > 0 && (
-              <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.badge}`}>
+              <div
+                className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium font-mono tabular-nums"
+                style={{
+                  background: `${colors.tint.accent}14`,
+                  color: colors.tint.accent,
+                }}
+              >
                 <Layers className="h-3 w-3" />
                 ×{card.resendCount + 1}
               </div>
@@ -201,31 +170,32 @@ function StackedCard({
           </div>
         </div>
 
-        {/* Card content */}
         <div className="p-4">
-          <p className="line-clamp-3 text-sm leading-relaxed text-gray-700">
+          <p className="line-clamp-3 text-sm leading-relaxed text-text-primary">
             {previewText}
           </p>
         </div>
 
-        {/* Card footer */}
         <div className="flex items-center justify-between border-t border-black/5 px-4 py-2">
-          <span className="text-[10px] text-gray-400">
+          <span className="text-[10px] text-text-muted font-mono tabular-nums">
             Turn {card.turnNumber}
           </span>
-
-          {/* Live indicator for top card */}
           {isTopCard && (
-            <span className="flex items-center gap-1 text-[10px] font-medium text-green-600">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+            <span
+              className="flex items-center gap-1 text-[10px] font-semibold tracking-wide"
+              style={{ color: 'var(--clarit-600)' }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full animate-pulse"
+                style={{ background: 'var(--clarit-500)' }}
+              />
               Live
             </span>
           )}
         </div>
 
-        {/* Card shine effect for top card */}
         {isTopCard && (
-          <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br from-white/40 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br from-white/45 via-transparent to-transparent" />
         )}
       </div>
     </motion.div>

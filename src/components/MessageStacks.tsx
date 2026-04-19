@@ -16,6 +16,8 @@
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { User, Bot, Layers, X, ZoomIn, ZoomOut, Move, RotateCcw } from 'lucide-react';
+import { heatTint, roleStripe, ghostHeat, type HeatTint } from '../lib/colors';
+import { cascade, riffle } from '../lib/springs';
 
 export interface MessageStack {
   id: string;
@@ -66,80 +68,22 @@ function getLayerTransform(stackId: string, layerIndex: number) {
 }
 
 /**
- * Per-layer color palettes within each role's color family.
- * Each ghost layer picks a different shade for visual variety.
+ * Layer heat: cooler as it sits deeper in the pile under a card that
+ * has been resent `cardCount` times.
  */
-const USER_LAYER_PALETTES = [
-  { bg: 'bg-gradient-to-b from-teal-50 to-emerald-100', border: 'border-teal-300' },
-  { bg: 'bg-gradient-to-b from-emerald-50 to-teal-100', border: 'border-emerald-300' },
-  { bg: 'bg-gradient-to-b from-green-50 to-teal-100', border: 'border-green-300' },
-  { bg: 'bg-gradient-to-b from-teal-100 to-emerald-200', border: 'border-teal-400' },
-  { bg: 'bg-gradient-to-b from-emerald-100 to-green-200', border: 'border-emerald-400' },
-  { bg: 'bg-gradient-to-b from-green-100 to-emerald-100', border: 'border-green-400' },
-];
-
-const ASSISTANT_LAYER_PALETTES = [
-  { bg: 'bg-gradient-to-b from-amber-50 to-orange-100', border: 'border-amber-300' },
-  { bg: 'bg-gradient-to-b from-yellow-50 to-amber-100', border: 'border-yellow-300' },
-  { bg: 'bg-gradient-to-b from-orange-50 to-amber-100', border: 'border-orange-300' },
-  { bg: 'bg-gradient-to-b from-amber-100 to-yellow-200', border: 'border-amber-400' },
-  { bg: 'bg-gradient-to-b from-yellow-100 to-orange-200', border: 'border-yellow-400' },
-  { bg: 'bg-gradient-to-b from-orange-100 to-amber-200', border: 'border-orange-400' },
-];
-
-function getLayerColors(stackId: string, layerIndex: number, role: 'user' | 'assistant') {
-  const h = hashSeed(`${stackId}-color-${layerIndex}`);
-  const palette = role === 'user' ? USER_LAYER_PALETTES : ASSISTANT_LAYER_PALETTES;
-  return palette[h % palette.length];
+function getLayerColors(_stackId: string, layerIndex: number, cardCount: number): HeatTint {
+  return ghostHeat(cardCount, layerIndex);
 }
 
 /**
- * Get color classes based on stack height (waste intensity) and role.
+ * Card-level heat + role stripe. Role is communicated by the stripe;
+ * heat by the whole card background.
  */
 function getStackColors(cardCount: number, role: 'user' | 'assistant') {
-  if (role === 'user') {
-    return {
-      bg: 'bg-gradient-to-b from-teal-50 to-emerald-100',
-      border: 'border-teal-300',
-      headerBg: 'bg-teal-100',
-      shadow: 'shadow-teal-200',
-      labelColor: 'text-teal-600',
-    };
-  }
-
-  if (cardCount === 1) {
-    return {
-      bg: 'bg-gradient-to-b from-amber-50 to-orange-100',
-      border: 'border-amber-300',
-      headerBg: 'bg-amber-100',
-      shadow: 'shadow-amber-200',
-      labelColor: 'text-amber-600',
-    };
-  } else if (cardCount <= 3) {
-    return {
-      bg: 'bg-gradient-to-b from-amber-100 to-orange-200',
-      border: 'border-amber-400',
-      headerBg: 'bg-amber-200',
-      shadow: 'shadow-amber-300',
-      labelColor: 'text-amber-700',
-    };
-  } else if (cardCount <= 6) {
-    return {
-      bg: 'bg-gradient-to-b from-orange-100 to-amber-300',
-      border: 'border-orange-400',
-      headerBg: 'bg-orange-200',
-      shadow: 'shadow-orange-300',
-      labelColor: 'text-orange-700',
-    };
-  } else {
-    return {
-      bg: 'bg-gradient-to-b from-orange-200 to-amber-400',
-      border: 'border-orange-500',
-      headerBg: 'bg-orange-300',
-      shadow: 'shadow-orange-400',
-      labelColor: 'text-orange-800',
-    };
-  }
+  return {
+    tint: heatTint(cardCount),
+    stripe: roleStripe(role),
+  };
 }
 
 // --- Riffle fan-out offset (from original StackLayers) ---
@@ -233,7 +177,7 @@ function AnimatedStackCard({ stack, offset, onClick, index, isNew }: AnimatedSta
         {/* Ghost layers - physical pile with riffle fan-out on hover */}
         {Array.from({ length: ghostCount }, (_, i) => {
           const layerT = getLayerTransform(stack.id, i);
-          const layerColors = getLayerColors(stack.id, i, stack.role);
+          const layerTint = getLayerColors(stack.id, i, stack.cardCount);
           const layerOpacity = 0.85 - i * (0.35 / Math.max(ghostCount, 1));
           const isLastGhost = i === ghostCount - 1 && overflowCount > 0;
 
@@ -254,11 +198,14 @@ function AnimatedStackCard({ stack, offset, onClick, index, isNew }: AnimatedSta
           return (
             <motion.div
               key={`ghost-${i}`}
-              className={`absolute inset-0 rounded-lg border-2 shadow-md ${layerColors.bg} ${layerColors.border}`}
+              className="absolute inset-0 rounded-lg ghost-layer"
               style={{
                 willChange: 'transform',
                 pointerEvents: 'none',
                 transformStyle: 'preserve-3d',
+                background: `linear-gradient(180deg, ${layerTint.bgFrom}, ${layerTint.bgTo})`,
+                border: `1px solid ${layerTint.border}`,
+                boxShadow: `0 4px 10px -6px ${layerTint.shadow}`,
               }}
               initial={{ opacity: 0, scale: 0.9, z: 0 }}
               animate={{
@@ -270,16 +217,15 @@ function AnimatedStackCard({ stack, offset, onClick, index, isNew }: AnimatedSta
                 rotate: isHovered ? fanRotation : pileRotation,
               }}
               transition={{
-                type: 'spring',
-                stiffness: 300,
-                damping: 25,
-                mass: 0.8,
+                ...riffle,
                 delay: i * 0.015, // riffle stagger
               }}
             >
-              {/* Overflow badge on last visible ghost */}
               {isLastGhost && (
-                <div className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-[8px] font-bold text-white shadow-sm">
+                <div
+                  className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold text-white shadow-sm font-mono tabular-nums"
+                  style={{ background: 'var(--burn-500)' }}
+                >
                   +{overflowCount}
                 </div>
               )}
@@ -310,47 +256,50 @@ function AnimatedStackCard({ stack, offset, onClick, index, isNew }: AnimatedSta
               scale: 0.95,
             }}
             transition={{
-              type: 'spring',
-              stiffness: 350,
-              damping: 22,
-              mass: 1,
+              ...cascade,
               delay: index * 0.15, // stagger cascade across stacks
             }}
-            className={`
-              absolute inset-0 flex flex-col rounded-lg border-2 shadow-xl
-              ${colors.bg} ${colors.border} ${colors.shadow}
-            `}
-            style={{ translateZ: 5, transformStyle: 'preserve-3d' }}
+            className="absolute inset-0 flex flex-col rounded-lg"
+            style={{
+              translateZ: 5,
+              transformStyle: 'preserve-3d',
+              background: `linear-gradient(180deg, ${colors.tint.bgFrom}, ${colors.tint.bgTo})`,
+              border: `1px solid ${colors.tint.border}`,
+              borderLeft: `2px solid ${colors.stripe}`,
+              boxShadow: `0 10px 24px -10px ${colors.tint.shadow}, 0 2px 6px -3px ${colors.tint.shadow}`,
+            }}
           >
-            {/* Shine overlay (glass effect on top card) */}
-            <div className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br from-white/30 via-transparent to-transparent" />
+            <div className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br from-white/35 via-transparent to-transparent" />
 
             {/* Header */}
             <div className="flex items-center justify-between px-2.5 pt-2">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" style={{ color: colors.stripe }}>
                 {stack.role === 'user' ? (
-                  <User className="h-3 w-3 text-teal-600" />
+                  <User className="h-3 w-3" />
                 ) : (
-                  <Bot className="h-3 w-3 text-amber-600" />
+                  <Bot className="h-3 w-3" />
                 )}
-                <span className={`text-[9px] font-semibold uppercase ${stack.role === 'user' ? 'text-teal-600' : 'text-amber-600'}`}>
+                <span
+                  className="text-[9px] font-semibold uppercase tracking-[0.12em] font-mono"
+                  style={{ color: colors.tint.accent }}
+                >
                   {stack.role}
                 </span>
               </div>
 
-              <div className={`
-                flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-medium
-                ${stack.role === 'user'
-                  ? 'bg-teal-200 text-teal-800'
-                  : 'bg-amber-200 text-amber-800'}
-              `}>
+              <div
+                className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-medium font-mono tabular-nums"
+                style={{
+                  background: `${colors.tint.accent}1F`,
+                  color: colors.tint.accent,
+                }}
+              >
                 <Layers className="h-2 w-2" />
                 x{stack.cardCount}
               </div>
             </div>
 
-            {/* Content preview */}
-            <p className="flex-1 px-2.5 pt-1 line-clamp-2 text-[10px] leading-tight text-gray-700">
+            <p className="flex-1 px-2.5 pt-1 line-clamp-2 text-[10px] leading-tight text-text-primary">
               {previewText}
             </p>
 
@@ -368,7 +317,10 @@ function AnimatedStackCard({ stack, offset, onClick, index, isNew }: AnimatedSta
       </motion.div>
 
       {/* Copies label below stack */}
-      <span className={`mt-2 text-[10px] font-medium ${colors.labelColor}`}>
+      <span
+        className="mt-2 text-[10px] font-medium font-mono tabular-nums tracking-wide"
+        style={{ color: colors.tint.accent }}
+      >
         {stack.cardCount} {stack.cardCount === 1 ? 'copy' : 'copies'}
       </span>
     </div>
@@ -412,25 +364,40 @@ function DetailModal({ stack, onClose }: DetailModalProps) {
 
         {/* Header */}
         <div className="mb-4 flex items-center gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${colors.headerBg}`}>
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{
+              background: `linear-gradient(180deg, ${colors.tint.bgFrom}, ${colors.tint.bgTo})`,
+              border: `1px solid ${colors.tint.border}`,
+            }}
+          >
             {stack.role === 'user' ? (
-              <User className="h-5 w-5 text-teal-600" />
+              <User className="h-5 w-5" style={{ color: colors.stripe }} />
             ) : (
-              <Bot className="h-5 w-5 text-amber-600" />
+              <Bot className="h-5 w-5" style={{ color: colors.stripe }} />
             )}
           </div>
           <div>
-            <h2 className={`text-base font-bold ${stack.role === 'user' ? 'text-teal-700' : 'text-amber-700'}`}>
+            <h2
+              className="font-display text-base font-bold tracking-tight"
+              style={{ color: colors.tint.accent }}
+            >
               {stack.role === 'user' ? 'User Message' : 'Assistant Response'}
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-text-muted font-mono">
               Turn #{stack.turnNumber} &middot; {stack.cardCount} copies &middot; {stack.tokens * stack.cardCount} total tokens
             </p>
           </div>
         </div>
 
         {/* Token breakdown */}
-        <div className={`mb-4 rounded-lg border p-3 ${colors.border} bg-gray-50`}>
+        <div
+          className="mb-4 rounded-lg border p-3"
+          style={{
+            borderColor: colors.tint.border,
+            background: 'var(--bg-secondary)',
+          }}
+        >
           <div className="grid grid-cols-3 gap-4 text-center text-xs">
             <div>
               <div className="font-mono text-lg font-bold text-gray-800">{stack.cardCount}</div>
