@@ -1,63 +1,78 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface ChatInputProps {
-  onSend: (text: string) => void;
-  disabled: boolean;
+  onSend?: (text: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+/**
+ * ChatInput — Clinical Futurist "industrial entry" field.
+ *
+ * Per spec:
+ *   - surface-container-highest background
+ *   - sm (0.25rem) corners
+ *   - 2px primary underline on focus (mimics a signature line on a medical form)
+ *   - NO heavy border
+ *
+ * Auto-grows to a sensible max height; Enter sends (Shift+Enter = newline).
+ * Functionally wired up in Phase 7 (PostArcControls enables it for live chat).
+ */
+export function ChatInput({ onSend, disabled = false, placeholder = 'Message the model…' }: ChatInputProps) {
   const [text, setText] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea
   useEffect(() => {
-    const el = textareaRef.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-    }
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [text]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (text.trim() && !disabled) {
-        onSend(text.trim());
-        setText('');
-      }
-    }
-  };
-
-  const handleSend = () => {
-    if (text.trim() && !disabled) {
-      onSend(text.trim());
-      setText('');
-    }
+  const submit = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onSend?.(trimmed);
+    setText('');
   };
 
   return (
-    <div className="flex-none px-4 py-3 border-t border-border-default bg-bg-surface">
-      <div className="flex items-end gap-2 max-w-3xl mx-auto">
+    <div className="w-full flex items-end gap-2">
+      <div className="flex-1 input-clinical px-3 py-2.5">
         <textarea
-          ref={textareaRef}
+          ref={ref}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
           disabled={disabled}
-          placeholder={disabled ? 'Waiting for response...' : 'Type a message...'}
+          placeholder={placeholder}
           rows={1}
-          className="flex-1 resize-none rounded-xl border border-border-default bg-bg-primary px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-clarit-500 focus:ring-1 focus:ring-clarit-500/30 transition-colors disabled:opacity-50"
+          className="w-full resize-none bg-transparent outline-none font-sans text-[14px] leading-relaxed"
+          style={{ color: 'var(--on-surface)' }}
         />
-        <button
-          onClick={handleSend}
-          disabled={disabled || !text.trim()}
-          className="flex-none w-10 h-10 rounded-xl bg-clarit-500 text-white flex items-center justify-center hover:bg-clarit-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M2 8L14 2L8 14L7 9L2 8Z" fill="currentColor" />
-          </svg>
-        </button>
       </div>
+      <button
+        onClick={submit}
+        disabled={disabled || !text.trim()}
+        className="flex-none h-10 px-4 rounded-full font-sans text-[12px] font-semibold tracking-wide transition-all"
+        style={{
+          background: text.trim() && !disabled
+            ? 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)'
+            : 'var(--surface-container-highest)',
+          color: text.trim() && !disabled ? '#FFFFFF' : 'var(--text-muted)',
+          cursor: text.trim() && !disabled ? 'pointer' : 'not-allowed',
+          boxShadow: text.trim() && !disabled
+            ? '0 4px 12px -4px rgba(0, 98, 157, 0.35)'
+            : 'none',
+        }}
+      >
+        Send
+      </button>
     </div>
   );
 }

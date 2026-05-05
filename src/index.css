@@ -1,111 +1,221 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
-/* === Clarit.ai Brand Tokens === */
+/* ============================================================
+   Clinical Futurist "Re-Read" — token system
+   Spec: /Users/bbrenner/Documents/Development/Clarit.ai/DESIGN.md
+   (palette hard-adhered; other constraints loose per user)
+   ============================================================ */
+
 :root {
-  /* Base */
-  --bg-primary: #FAFBFC;
-  --bg-secondary: #F0F2F5;
-  --bg-surface: #FFFFFF;
-  --text-primary: #1A1D23;
-  --text-secondary: #5F6B7A;
-  --text-muted: #9CA3AF;
-  --border-default: #E5E7EB;
-  --border-strong: #D1D5DB;
+  /* --- Brand palette (hard-locked) --- */
+  --primary:           #00629D;
+  --primary-container: #00A3FF;
+  --secondary:         #00BFA5;
+  --secondary-container:#68FADD;
+  --tertiary:          #0046FA;
+  --on-surface:        #191C1E;
+  --error-container:   #FFDAD6;
+  --outline-variant:   #BEC7D4;
 
-  /* Brand: Clarit Teal (efficiency, stateful, good) */
-  --clarit-50: #ECFDF5;
-  --clarit-100: #D1FAE5;
-  --clarit-200: #A7F3D0;
-  --clarit-400: #34D399;
-  --clarit-500: #10B981;
-  --clarit-600: #059669;
-  --clarit-700: #047857;
+  /* --- Burn accent (retained for any heat metaphor / warning) --- */
+  --burn-400: #EBA070;
+  --burn-500: #E89460;
+  --burn-600: #C77648;
 
-  /* Waste: Amber/Coral (redundancy, stateless, bad) */
-  --waste-50: #FFF7ED;
-  --waste-100: #FFEDD5;
-  --waste-200: #FED7AA;
-  --waste-300: #FDBA74;
-  --waste-400: #FB923C;
-  --waste-500: #F97316;
-  --waste-600: #EA580C;
-  --waste-700: #C2410C;
+  /* --- Light surface hierarchy (chat pane) --- */
+  --surface:                     #F7F9FB;
+  --surface-container-low:       #F2F4F6;
+  --surface-container:            #ECEEF0;
+  --surface-container-high:      #E6E8EA;
+  --surface-container-highest:   #E0E3E5;
+  --surface-container-lowest:    #FFFFFF;
+
+  /* --- Dark surface hierarchy (re-read pane, inverted cold) --- */
+  --surface-dark:                #0A1119;
+  --surface-container-dark:      #101B28;
+  --surface-container-high-dark: #182635;
+  --on-surface-dark:             #D9E0EA;
+  --on-surface-dark-muted:       #7A8696;
+  --on-surface-dark-faint:       #4C596B;
+
+  /* --- Semantic aliases --- */
+  --text-primary: var(--on-surface);
+  --text-secondary: #4A5668;
+  --text-muted: #8692A6;
+}
+
+/* ============================================================
+   Tailwind v4 theme layer — register tokens as utilities
+   ============================================================ */
+@theme {
+  /* Brand */
+  --color-primary:              var(--primary);
+  --color-primary-container:    var(--primary-container);
+  --color-secondary:            var(--secondary);
+  --color-secondary-container:  var(--secondary-container);
+  --color-tertiary:             var(--tertiary);
+  --color-on-surface:           var(--on-surface);
+  --color-error-container:      var(--error-container);
+  --color-outline-variant:      var(--outline-variant);
+
+  /* Burn */
+  --color-burn-400: var(--burn-400);
+  --color-burn-500: var(--burn-500);
+  --color-burn-600: var(--burn-600);
+
+  /* Light surfaces */
+  --color-surface:                     var(--surface);
+  --color-surface-container-low:       var(--surface-container-low);
+  --color-surface-container:           var(--surface-container);
+  --color-surface-container-high:      var(--surface-container-high);
+  --color-surface-container-highest:   var(--surface-container-highest);
+  --color-surface-container-lowest:    var(--surface-container-lowest);
+
+  /* Dark surfaces */
+  --color-surface-dark:                 var(--surface-dark);
+  --color-surface-container-dark:       var(--surface-container-dark);
+  --color-surface-container-high-dark:  var(--surface-container-high-dark);
+  --color-on-surface-dark:              var(--on-surface-dark);
+  --color-on-surface-dark-muted:        var(--on-surface-dark-muted);
+  --color-on-surface-dark-faint:        var(--on-surface-dark-faint);
 
   /* Semantic */
-  --stateful-accent: var(--clarit-500);
-  --stateless-accent: var(--waste-500);
-}
-
-/* === Theme Layer for Tailwind v4 === */
-@theme {
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
-  --color-bg-surface: var(--bg-surface);
-  --color-text-primary: var(--text-primary);
+  --color-text-primary:   var(--text-primary);
   --color-text-secondary: var(--text-secondary);
-  --color-text-muted: var(--text-muted);
-  --color-border-default: var(--border-default);
-  --color-border-strong: var(--border-strong);
+  --color-text-muted:     var(--text-muted);
 
-  --color-clarit-50: var(--clarit-50);
-  --color-clarit-100: var(--clarit-100);
-  --color-clarit-200: var(--clarit-200);
-  --color-clarit-400: var(--clarit-400);
-  --color-clarit-500: var(--clarit-500);
-  --color-clarit-600: var(--clarit-600);
-  --color-clarit-700: var(--clarit-700);
-
-  --color-waste-50: var(--waste-50);
-  --color-waste-100: var(--waste-100);
-  --color-waste-200: var(--waste-200);
-  --color-waste-300: var(--waste-300);
-  --color-waste-400: var(--waste-400);
-  --color-waste-500: var(--waste-500);
-  --color-waste-600: var(--waste-600);
-  --color-waste-700: var(--waste-700);
-
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Fonts */
+  --font-sans:    'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
 }
 
-/* === Global Styles === */
-* {
-  box-sizing: border-box;
-}
-
+/* ============================================================
+   Globals
+   ============================================================ */
+* { box-sizing: border-box; }
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
 }
-
 body {
   font-family: var(--font-sans);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: var(--surface);
+  color: var(--on-surface);
+  font-feature-settings: 'ss01','cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar styling */
-.payload-scroll::-webkit-scrollbar {
-  width: 6px;
+h1,h2,h3,.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
-.payload-scroll::-webkit-scrollbar-track {
-  background: transparent;
+.font-mono, .tabular-nums {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
-.payload-scroll::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+
+/* ============================================================
+   Utilities
+   ============================================================ */
+
+/* Signature gradient — 135° primary → primary-container.
+   Spec: "shimmer mimicking active tech". Use via .sig-gradient, .sig-gradient-text, or .sig-gradient-border. */
+.sig-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+}
+.sig-gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Ambient shadow — blur 32px, spread -4px, on-surface 6%.
+   Per spec, ONLY for interaction overlays (modals, dropdowns, dramatic cards). */
+.ambient-shadow {
+  box-shadow: 0 8px 32px -4px rgba(25, 28, 30, 0.06);
+}
+.ambient-shadow-dark {
+  box-shadow: 0 12px 40px -6px rgba(0, 0, 0, 0.45);
+}
+
+/* Glass chip — surface-container-lowest 70% opacity + 20px backdrop-blur */
+.glass-chip {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+}
+.glass-chip-dark {
+  background: rgba(16, 27, 40, 0.72);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+}
+
+/* Micro-grid dot pattern — 12px dots at 5% opacity.
+   Per spec: top-right corner of cards for "tech-parody" reinforcement.
+   Apply via .micro-grid-corner on a container with position:relative. */
+.micro-grid-corner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image:
+    radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0);
+  background-size: 12px 12px;
+  mask-image: linear-gradient(to bottom left, black 0%, transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom left, black 0%, transparent 70%);
+}
+
+/* Clinical input — 2px primary underline focus (spec) */
+.input-clinical {
+  border-radius: 0.25rem;
+  background: var(--surface-container-highest);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  transition: border-color 160ms cubic-bezier(0.22,1,0.36,1);
+}
+.input-clinical:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
+}
+
+/* Scrollbar — minimal clinical */
+.payload-scroll::-webkit-scrollbar,
+.clinical-scroll::-webkit-scrollbar { width: 6px; }
+.payload-scroll::-webkit-scrollbar-track,
+.clinical-scroll::-webkit-scrollbar-track { background: transparent; }
+.payload-scroll::-webkit-scrollbar-thumb,
+.clinical-scroll::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
   border-radius: 3px;
 }
-.payload-scroll::-webkit-scrollbar-thumb:hover {
+.payload-scroll::-webkit-scrollbar-thumb:hover,
+.clinical-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
 
-/* Ghost layer stacking - ensure they're visible above content */
-.ghost-layer {
-  will-change: transform, opacity;
-  backface-visibility: hidden;
+/* ============================================================
+   Clarity flash — chromatic aberration text split
+   Retained from Gleaming Prism; repurposed for the stateful reveal.
+   ============================================================ */
+.clarity-flash,
+.clarity-flash body {
+  animation: clarity-chroma 240ms cubic-bezier(0.22,1,0.36,1) forwards;
+}
+@keyframes clarity-chroma {
+  0%   { text-shadow: -2px 0 rgba(0,163,255,0.6), 2px 0 rgba(0,70,250,0.6); }
+  60%  { text-shadow: -0.8px 0 rgba(0,163,255,0.3), 0.8px 0 rgba(0,70,250,0.3); }
+  100% { text-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clarity-flash, .clarity-flash body { animation: none; }
 }

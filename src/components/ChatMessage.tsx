@@ -1,23 +1,75 @@
-import type { Message } from '../services/types';
+import { memo } from 'react';
+import { motion } from 'framer-motion';
 
-interface ChatMessageProps {
-  message: Message;
+export interface ChatMessageProps {
+  role: 'user' | 'assistant';
+  content: string;
+  /** When true, mounts with an entry spring. Once false (seen before), renders without animating. */
+  isNew?: boolean;
+  /** Optional cursor element to render at end (for streaming assistant). */
+  trailingCursor?: React.ReactNode;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
-  const isUser = message.role === 'user';
-
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-          isUser
-            ? 'bg-clarit-500 text-white rounded-br-sm'
-            : 'bg-bg-secondary text-text-primary rounded-bl-sm'
-        }`}
+/**
+ * ChatMessage — a single chat bubble. Two variants per DESIGN.md Clinical Futurist:
+ *
+ *   USER: signature-gradient pill (135° primary → primary-container), white text,
+ *         `full` roundedness, right-aligned. The "engaged tech" accent moment.
+ *
+ *   ASSISTANT: surface-container-lowest card with spec ambient shadow
+ *         (32px blur, -4px spread, on-surface 6% opacity), lg roundedness,
+ *         on-surface text. Left-aligned. No border (no-line rule).
+ *
+ * Both use body-copy Geist; numerics/technical spans should opt into mono
+ * via explicit classes in the content if ever mixed in.
+ */
+export const ChatMessage = memo(function ChatMessage({
+  role,
+  content,
+  isNew = false,
+  trailingCursor,
+}: ChatMessageProps) {
+  if (role === 'user') {
+    return (
+      <motion.div
+        className="flex justify-end"
+        initial={isNew ? { opacity: 0, y: 8, scale: 0.96 } : false}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 340, damping: 24, mass: 0.7 }}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <div
+          className="max-w-[78%] rounded-full px-4 py-2 text-[14px] leading-relaxed whitespace-pre-wrap"
+          style={{
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
+            color: '#FFFFFF',
+            boxShadow: '0 4px 14px -6px rgba(0, 98, 157, 0.35)',
+          }}
+        >
+          {content}
+          {trailingCursor}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // assistant
+  return (
+    <motion.div
+      className="flex justify-start"
+      initial={isNew ? { opacity: 0, y: 10 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 26, mass: 0.8 }}
+    >
+      <div
+        className="max-w-[88%] rounded-2xl px-5 py-3 text-[14px] leading-relaxed ambient-shadow whitespace-pre-wrap"
+        style={{
+          background: 'var(--surface-container-lowest)',
+          color: 'var(--on-surface)',
+        }}
+      >
+        {content}
+        {trailingCursor}
       </div>
-    </div>
+    </motion.div>
   );
-}
+});

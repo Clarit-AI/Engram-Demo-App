@@ -1,36 +1,27 @@
-import { useDemoStore } from './store/demoStore';
-import { LandingModal } from './components/LandingModal';
-import { MetricsBar } from './components/MetricsBar';
-import { PayloadInspector } from './components/PayloadInspector';
+import { ReReadStage } from './components/ReReadStage';
 import { ChatPanel } from './components/ChatPanel';
-import { FooterBar } from './components/FooterBar';
+import { StatefulReveal } from './components/StatefulReveal';
 
+/**
+ * App — root layout for the Clinical Futurist "Re-Read" build.
+ *
+ * Split 60/40:
+ *   left  — dark ReReadStage (JSON re-stream cinematic)
+ *   right — light Clinical Futurist chat pane
+ *
+ * No landing modal, no metrics bar, no footer. The dramatization IS the
+ * landing experience — it starts playing on boot.
+ */
 export default function App() {
-  const appMode = useDemoStore((s) => s.appMode);
-
-  if (!appMode) {
-    return <LandingModal />;
-  }
-
   return (
-    <div className="flex flex-col h-full">
-      <MetricsBar />
-      <main className="flex-1 flex overflow-hidden">
-        {/* Desktop: split view */}
-        <div className="hidden lg:flex w-full">
-          <div className="w-[45%] border-r border-border-default">
-            <PayloadInspector />
-          </div>
-          <div className="w-[55%]">
-            <ChatPanel />
-          </div>
-        </div>
-        {/* Mobile: chat view */}
-        <div className="lg:hidden w-full">
-          <ChatPanel />
-        </div>
-      </main>
-      <FooterBar />
+    <div className="flex h-full w-full">
+      <div className="w-full lg:w-[60%] h-full">
+        <ReReadStage />
+      </div>
+      <div className="hidden lg:block lg:w-[40%] h-full">
+        <ChatPanel />
+      </div>
+      <StatefulReveal />
     </div>
   );
 }
