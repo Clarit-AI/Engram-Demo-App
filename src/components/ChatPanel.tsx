@@ -6,7 +6,6 @@ import { useChatStore } from '../store/chatStore';
 import { useLiveTurn } from '../hooks/useLiveTurn';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { StreamingCursor } from './StreamingCursor';
 import { ThinkingDots } from './ThinkingDots';
 
 /**
@@ -71,21 +70,18 @@ export function ChatPanel() {
   // Show user message from composing onwards.
   const showCurrentUser = ['composing', 'streaming', 'settled', 'peaking', 'revealing', 'post-arc'].includes(phase);
 
-  // Derive the current assistant bubble state from the shared stream clock.
-  // Demo mode: streamedChars counts through request + delimiter + response.
-  // Chat mode: same shape, but the "response" portion grows live as the
-  // provider yields tokens — useStreamText handles the text-extension case.
+  // The agent pane owns the response stream first. The user-facing pane
+  // keeps showing typing dots until that hidden-side response is complete.
   const responseCharsStreamed = Math.max(0, streamedChars - responseBoundary);
-  const responseVisible = streamedChars > responseBoundary;
-  const responseComplete =
-    isChat
-      ? liveStatus === 'done' && responseCharsStreamed >= assistantText.length
-      : assistantText.length > 0 && responseCharsStreamed >= assistantText.length;
 
-  const showThinking = phase === 'streaming' && !responseVisible;
-  const showStreamingAssistant = phase === 'streaming' && responseVisible;
+  const showThinking = phase === 'streaming';
+  const showStreamingAssistant = phase === 'streaming' && responseCharsStreamed > 0;
   const showFullAssistant =
     phase === 'settled' || phase === 'peaking' || phase === 'revealing' || phase === 'post-arc';
+
+  const demoInputText = !isChat && phase === 'composing' && currentPair
+    ? currentPair.user.slice(0, streamedChars)
+    : undefined;
 
   // Auto-scroll on content change.
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -95,7 +91,7 @@ export function ChatPanel() {
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [currentTurn, phase, responseCharsStreamed, liveAssistantBuffer.length]);
 
-  const hasAnyContent = isChat ? liveMessages.length > 0 : currentTurn > 0 || showCurrentUser;
+  const hasAnyContent = isChat ? liveMessages.length > 0 : currentTurn > 1 || showCurrentUser || !!demoInputText;
 
   // Input is enabled only in chat mode and when not currently streaming.
   const inputDisabled =
@@ -170,7 +166,7 @@ export function ChatPanel() {
                 const isCurrent = turnNum === currentTurn;
 
                 // User message
-                const userVisible = !isCurrent || showCurrentUser;
+                const userVisible = !isCurrent || (showCurrentUser && phase !== 'composing');
                 if (userVisible) {
                   nodes.push(
                     <ChatMessage
@@ -209,9 +205,6 @@ export function ChatPanel() {
                             role="assistant"
                             content={assistantText.slice(0, responseCharsStreamed)}
                             isNew
-                            trailingCursor={
-                              !responseComplete ? <StreamingCursor /> : null
-                            }
                           />
                         ) : showThinking ? (
                           <ThinkingDots key="thinking" />
@@ -247,6 +240,8 @@ export function ChatPanel() {
           disabled={inputDisabled}
           placeholder={inputPlaceholder}
           onSend={isChat ? send : undefined}
+          displayText={demoInputText}
+          sending={!isChat && phase === 'streaming' && responseCharsStreamed === 0}
         />
       </div>
     </div>

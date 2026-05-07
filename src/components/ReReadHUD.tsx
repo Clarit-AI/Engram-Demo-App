@@ -3,7 +3,6 @@ import { useArcStore } from '../store/arcStore';
 import {
   computeTurnMetrics,
   computeSessionMetrics,
-  DEFAULT_COST_PER_MTOK,
 } from '../lib/metrics';
 import { AnimatedNumber } from './AnimatedNumber';
 
@@ -52,9 +51,9 @@ export const ReReadHUD = memo(function ReReadHUD() {
 
   if (!activeDemo || !metrics) {
     return (
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute left-8 right-8 top-4 z-20">
         <div
-          className="glass-chip-dark rounded-2xl px-4 py-3 text-[11px] font-mono uppercase tracking-[0.14em]"
+          className="glass-chip-dark rounded-2xl px-4 py-3 text-[11px] font-mono uppercase tracking-[0.14em] ambient-shadow-dark"
           style={{ color: 'var(--on-surface-dark-faint)' }}
         >
           booting…
@@ -64,137 +63,131 @@ export const ReReadHUD = memo(function ReReadHUD() {
   }
 
   return (
-    <div className="absolute top-4 right-4 z-20 pointer-events-none">
-      <div className="glass-chip-dark rounded-2xl px-5 py-4 min-w-[240px] ambient-shadow-dark">
-        {/* Row 1 — turn indicator + demo title */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-baseline gap-1.5 text-[10px] font-mono uppercase tracking-[0.18em]"
-            style={{ color: 'var(--on-surface-dark-muted)' }}
-          >
-            <span>Turn</span>
-            <span
-              className="tabular-nums font-semibold text-[13px]"
+    <div className="absolute left-8 right-8 top-4 z-20 pointer-events-none">
+      <div className="glass-chip-dark flex items-center justify-between gap-5 rounded-2xl px-5 py-3 ambient-shadow-dark">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ background: isStateful ? 'var(--secondary-container)' : 'var(--burn-500)' }}
+          />
+          <div className="min-w-0">
+            <div
+              className="font-display text-[13px] font-semibold tracking-tight"
               style={{ color: 'var(--on-surface-dark)' }}
             >
-              {turn}
-            </span>
-            <span style={{ color: 'var(--on-surface-dark-faint)' }}>
-              /&nbsp;{totalTurns || turnsCap}
-            </span>
+              Agent inbox
+            </div>
+            <div
+              className="truncate text-[9px] font-mono uppercase tracking-[0.14em]"
+              style={{ color: 'var(--on-surface-dark-faint)' }}
+              title={activeDemo.title}
+            >
+              {activeDemo.title}
+            </div>
           </div>
-          <span
-            className="text-[9px] font-mono uppercase tracking-[0.14em] truncate max-w-[140px]"
-            style={{ color: 'var(--on-surface-dark-faint)' }}
-            title={activeDemo.title}
-          >
-            {activeDemo.title}
-          </span>
         </div>
 
-        {/* Row 2 — BIG re-read number (headline). Drops to ~34 tok and
-            shifts to teal once stateful reveal lands. */}
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
+        <div className="flex shrink-0 items-center gap-5">
+          <MetricLabel label="Turn" value={`${turn} / ${totalTurns || turnsCap}`} />
+          <div>
             <div
-              className="text-[9px] font-mono uppercase tracking-[0.22em]"
+              className="text-[8px] font-mono uppercase tracking-[0.2em]"
               style={{ color: 'var(--on-surface-dark-muted)' }}
             >
-              {isStateful ? 'Re-read THIS turn' : 'Re-read this turn'}
+              Re-read
             </div>
-            {isStateful && (
-              <span
-                className="rounded-full px-2 py-0.5 text-[8px] font-mono uppercase tracking-[0.18em] font-semibold"
-                style={{
-                  background: 'rgba(104, 250, 221, 0.16)',
-                  color: 'var(--secondary-container)',
-                  border: '1px solid rgba(104, 250, 221, 0.32)',
-                }}
-              >
-                Stateful
-              </span>
-            )}
+            <AnimatedNumber
+              value={isStateful ? 34 : metrics.reReadTokens}
+              suffix=" tok"
+              className={
+                isStateful
+                  ? 'font-mono font-bold text-[18px] leading-none tabular-nums'
+                  : 'font-mono font-bold text-[18px] leading-none tabular-nums sig-gradient-text'
+              }
+              style={isStateful ? { color: 'var(--secondary-container)' } : undefined}
+            />
           </div>
-          <AnimatedNumber
-            value={isStateful ? 34 : metrics.reReadTokens}
-            suffix=" tok"
-            className={
-              isStateful
-                ? 'font-mono font-bold text-[26px] leading-none tabular-nums'
-                : 'font-mono font-bold text-[26px] leading-none tabular-nums sig-gradient-text'
-            }
-            style={
-              isStateful ? { color: 'var(--secondary-container)' } : undefined
-            }
-          />
-        </div>
-
-        {/* Divider via tonal shift (no line per spec) */}
-        <div
-          className="h-px mb-3"
-          style={{ background: 'rgba(190,199,212,0.08)' }}
-        />
-
-        {/* Row 3 — session total */}
-        <div className="flex items-baseline justify-between mb-2">
-          <span
-            className="text-[9px] font-mono uppercase tracking-[0.18em]"
-            style={{ color: 'var(--on-surface-dark-muted)' }}
-          >
-            Session total
-          </span>
-          <AnimatedNumber
-            value={metrics.session.totalTokens}
-            suffix=" tok"
-            className="font-mono font-semibold text-[14px] tabular-nums"
-            style={{ color: 'var(--on-surface-dark)' }}
-          />
-        </div>
-
-        {/* Row 4 — equivalent pages */}
-        <div className="flex items-baseline justify-between mb-2">
-          <span
-            className="text-[9px] font-mono uppercase tracking-[0.18em]"
-            style={{ color: 'var(--on-surface-dark-muted)' }}
-          >
-            ≈ Pages re-read
-          </span>
-          <AnimatedNumber
-            value={metrics.session.totalPages}
-            decimals={1}
-            className="font-mono font-semibold text-[13px] tabular-nums"
-            style={{ color: 'var(--on-surface-dark)' }}
-          />
-        </div>
-
-        {/* Row 5 — compute cost */}
-        <div className="flex items-baseline justify-between">
-          <span
-            className="text-[9px] font-mono uppercase tracking-[0.18em]"
-            style={{ color: 'var(--on-surface-dark-muted)' }}
-          >
-            Input cost
-          </span>
-          <AnimatedNumber
+          <MetricNumber label="Total" value={metrics.session.totalTokens} suffix=" tok" />
+          <MetricNumber label="Pages" value={metrics.session.totalPages} decimals={1} />
+          <MetricNumber
+            label="Cost"
             value={metrics.session.totalCostUsd}
             decimals={4}
             prefix="$"
             comma={false}
-            className="font-mono font-semibold text-[13px] tabular-nums"
-            style={{ color: 'var(--secondary-container)' }}
+            accent
           />
-        </div>
-
-        {/* Fine print — model + pricing */}
-        <div
-          className="mt-3 pt-2 text-[8px] font-mono uppercase tracking-[0.22em] text-right"
-          style={{
-            color: 'var(--on-surface-dark-faint)',
-            borderTop: '1px solid rgba(190,199,212,0.06)',
-          }}
-        >
-          {activeDemo.model.split('/').pop()} · ${DEFAULT_COST_PER_MTOK.toFixed(2)}/Mtok
+          {isStateful && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[8px] font-mono uppercase tracking-[0.18em] font-semibold"
+              style={{
+                background: 'rgba(104, 250, 221, 0.16)',
+                color: 'var(--secondary-container)',
+                border: '1px solid rgba(104, 250, 221, 0.32)',
+              }}
+            >
+              Stateful
+            </span>
+          )}
         </div>
       </div>
     </div>
   );
 });
+
+function MetricLabel({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div
+        className="text-[8px] font-mono uppercase tracking-[0.2em]"
+        style={{ color: 'var(--on-surface-dark-muted)' }}
+      >
+        {label}
+      </div>
+      <div
+        className="font-mono text-[13px] font-semibold tabular-nums"
+        style={{ color: 'var(--on-surface-dark)' }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MetricNumber({
+  label,
+  value,
+  decimals,
+  prefix,
+  suffix,
+  comma,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+  comma?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <div
+        className="text-[8px] font-mono uppercase tracking-[0.2em]"
+        style={{ color: 'var(--on-surface-dark-muted)' }}
+      >
+        {label}
+      </div>
+      <AnimatedNumber
+        value={value}
+        decimals={decimals}
+        prefix={prefix}
+        suffix={suffix}
+        comma={comma}
+        className="font-mono text-[13px] font-semibold tabular-nums"
+        style={{ color: accent ? 'var(--secondary-container)' : 'var(--on-surface-dark)' }}
+      />
+    </div>
+  );
+}

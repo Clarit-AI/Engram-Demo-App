@@ -85,7 +85,7 @@
     "createdAt": 1774846714252,
     "updatedAt": 1774846873034,
     "mode": "stateless",
-    "model": "gpt-4o"
+    "model": "nvidia/nemotron-3-super-120b-a12b"
   },
   "turnPayloads": [
     {
@@ -98,7 +98,7 @@
           "Authorization": "Bearer [REDACTED]"
         },
         "body": {
-          "model": "gpt-4o",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             {
               "role": "user",
@@ -134,7 +134,7 @@
           "Authorization": "Bearer [REDACTED]"
         },
         "body": {
-          "model": "gpt-4o",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             {
               "role": "user",
@@ -178,7 +178,7 @@
           "Authorization": "Bearer [REDACTED]"
         },
         "body": {
-          "model": "gpt-4o",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             {
               "role": "user",
@@ -230,7 +230,7 @@
           "Authorization": "Bearer [REDACTED]"
         },
         "body": {
-          "model": "gpt-4o",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             {
               "role": "user",
@@ -290,7 +290,7 @@
           "Authorization": "Bearer [REDACTED]"
         },
         "body": {
-          "model": "gpt-4o",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             {
               "role": "user",
@@ -358,7 +358,7 @@
           "Authorization": "Bearer [REDACTED]"
         },
         "body": {
-          "model": "gpt-4o",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             {
               "role": "user",

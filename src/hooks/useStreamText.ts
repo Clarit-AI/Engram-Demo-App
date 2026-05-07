@@ -58,7 +58,10 @@ export function useStreamText({
   const intervalRef = useRef<number | null>(null);
   const firedCompleteRef = useRef(false);
   const completeCbRef = useRef(onComplete);
-  completeCbRef.current = onComplete;
+
+  useEffect(() => {
+    completeCbRef.current = onComplete;
+  }, [onComplete]);
 
   // Reset when target text changes — but ONLY when the new text isn't a
   // forward extension of the prior text. This lets live-streaming callers
@@ -79,6 +82,7 @@ export function useStreamText({
     pointerRef.current = 0;
     lastTickRef.current = 0;
     firedCompleteRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- target swaps must reset the streaming cursor synchronously.
     setStreamedChars(0);
   }, [text]);
 
@@ -89,6 +93,7 @@ export function useStreamText({
     const reduced = !!media?.matches;
     if (reduced || instant) {
       pointerRef.current = text.length;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reduced motion intentionally skips the animation frame loop.
       setStreamedChars(text.length);
       if (!firedCompleteRef.current) {
         firedCompleteRef.current = true;

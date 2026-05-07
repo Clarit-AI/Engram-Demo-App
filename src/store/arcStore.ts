@@ -73,6 +73,9 @@ interface ArcState {
   // --- Stateful reveal sub-state ---
   revealStep: RevealStep;
 
+  // --- Local debug controls ---
+  debugHoldStateless: boolean;
+
   // --- Actions ---
   setAppMode: (mode: AppMode) => void;
   setInferenceMode: (mode: InferenceMode) => void;
@@ -85,6 +88,7 @@ interface ArcState {
   setStreamProgress: (chars: number) => void;
   setResponseBoundary: (idx: number) => void;
   setRevealStep: (step: RevealStep) => void;
+  setDebugHoldStateless: (hold: boolean) => void;
 }
 
 export const useArcStore = create<ArcState>((set, get) => ({
@@ -104,6 +108,8 @@ export const useArcStore = create<ArcState>((set, get) => ({
   responseBoundary: Number.MAX_SAFE_INTEGER,
 
   revealStep: 'idle',
+
+  debugHoldStateless: true,
 
   setAppMode: (mode) => set({ appMode: mode }),
   setInferenceMode: (mode) => set({ inferenceMode: mode }),
@@ -142,6 +148,7 @@ export const useArcStore = create<ArcState>((set, get) => ({
   setStreamProgress: (chars) => set({ streamedChars: chars }),
   setResponseBoundary: (idx) => set({ responseBoundary: idx }),
   setRevealStep: (step) => set({ revealStep: step }),
+  setDebugHoldStateless: (hold) => set({ debugHoldStateless: hold }),
 }));
 
 // Dev-only: expose store on window for browser-console debugging.

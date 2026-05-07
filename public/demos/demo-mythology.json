@@ -54,13 +54,13 @@
       }
     ],
     "mode": "stateless",
-    "model": "nvidia/llama-3.1-nemotron-70b-instruct:free"
+    "model": "nvidia/nemotron-3-super-120b-a12b"
   },
   "turnPayloads": [
     {
       "request": {
         "body": {
-          "model": "nvidia/llama-3.1-nemotron-70b-instruct:free",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             { "role": "system", "content": "You are a helpful AI assistant. You provide clear, accurate answers to questions about any topic. Be concise but thorough." },
             { "role": "user", "content": "Who was the Greek god of the sea?" }
@@ -79,7 +79,7 @@
     {
       "request": {
         "body": {
-          "model": "nvidia/llama-3.1-nemotron-70b-instruct:free",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             { "role": "system", "content": "You are a helpful AI assistant. You provide clear, accurate answers to questions about any topic. Be concise but thorough." },
             { "role": "user", "content": "Who was the Greek god of the sea?" },
@@ -100,7 +100,7 @@
     {
       "request": {
         "body": {
-          "model": "nvidia/llama-3.1-nemotron-70b-instruct:free",
+          "model": "nvidia/nemotron-3-super-120b-a12b",
           "messages": [
             { "role": "system", "content": "You are a helpful AI assistant. You provide clear, accurate answers to questions about any topic. Be concise but thorough." },
             { "role": "user", "content": "Who was the Greek god of the sea?" },

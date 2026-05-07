@@ -110,7 +110,7 @@ class StatelessProvider implements InferenceProvider {
 
     return {
       textStream: result.textStream,
-      fullText: result.text,
+      fullText: Promise.resolve(result.text),
     };
   }
 
@@ -182,7 +182,7 @@ class StatefulStubProvider implements InferenceProvider {
 
     return {
       textStream: result.textStream,
-      fullText: result.text,
+      fullText: Promise.resolve(result.text),
     };
   }
 
@@ -208,4 +208,4 @@ export function stringifyWirePayload(p: WirePayload): string {
 }
 
 export const DEFAULT_LIVE_MODEL =
-  import.meta.env.VITE_DEFAULT_MODEL || 'nvidia/llama-3.1-nemotron-70b-instruct:free';
+  import.meta.env.VITE_DEFAULT_MODEL || 'nvidia/nemotron-3-super-120b-a12b';

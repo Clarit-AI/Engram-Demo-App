@@ -91,7 +91,6 @@ export function useLiveTurn() {
           setPhase('settled');
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          // eslint-disable-next-line no-console
           console.error('[useLiveTurn] stream failed:', msg);
           setError(msg);
           finalizeAssistant();

@@ -6,7 +6,7 @@ import { loadDemo, capDemoToTurns } from '../services/demoLibrary';
 /**
  * PostArcControls — the floor of the dark pane after the reveal lands.
  *
- * Mounts on `phase === 'post-arc'` and gives the viewer four levers:
+ * Mounts after the stateless arc has completed and gives the viewer four levers:
  *   • Replay Demo            — resets currentTurn to 0, kicks the arc
  *                              orchestrator back to 'intro' so the
  *                              cinematic plays again.
@@ -56,7 +56,8 @@ export const PostArcControls = memo(function PostArcControls() {
     return () => window.removeEventListener('mousedown', onDown);
   }, [demoMenuOpen]);
 
-  if (phase !== 'post-arc') return null;
+  const showControls = phase === 'peaking' || phase === 'post-arc';
+  if (!showControls) return null;
 
   const handleReplay = () => {
     resetArc();
@@ -70,7 +71,6 @@ export const PostArcControls = memo(function PostArcControls() {
     setAppMode('chat');
     // Phase 8 wiring pending — for now we just flip mode and log so the
     // affordance is testable end-to-end without the live backend.
-    // eslint-disable-next-line no-console
     console.info('[PostArcControls] actually-chat: live backend not wired yet (Phase 8)');
   };
 

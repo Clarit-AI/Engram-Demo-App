@@ -20,11 +20,16 @@ import {
   stringifyWirePayload,
   DEFAULT_LIVE_MODEL,
 } from '../services/inferenceProvider';
-import { JsonStream } from './JsonStream';
+import { AgentInboxStage, type AgentInboxResponse } from './AgentInboxStage';
 import { ReReadHUD } from './ReReadHUD';
+import { DebugControls } from './DebugControls';
 import { TimelineStrip } from './TimelineStrip';
 import { PostArcControls } from './PostArcControls';
 import { useStreamText, commonPrefixLength } from '../hooks/useStreamText';
+import {
+  buildStatefulAgentRequestBundle,
+  buildStatelessAgentRequestBundle,
+} from '../lib/agentRequestBundle';
 
 /**
  * Streaming pacing configuration.
@@ -36,28 +41,13 @@ import { useStreamText, commonPrefixLength } from '../hooks/useStreamText';
  */
 const FAST_RATE_CPS = 600;  // recall speed (chars/sec) — the model is "fast-forwarding" through seen content
 const SLOW_RATE_CPS = 140;  // new-content speed — dramatic-slow but not audience-losing slow
+const HUMAN_TYPE_CPS = 42;
 
 /** Phase hold times between beats (ms) */
 const HOLD_INTRO = 700;
 const HOLD_COMPOSING = 650;  // user msg sits on chat pane before JSON starts re-reading it
 const HOLD_SETTLED = 450;    // brief beat after the full stream (request + response) completes
 const HOLD_PEAKING = 1500;
-
-/**
- * Font size (px) applied to the JSON column based on current turn.
- * Shrinking the font reflows the text (wider effective box), letting
- * more content fit vertically while still FILLING the pane's width.
- * CSS transform:scale() was the wrong tool — it shrinks the rendered
- * box without reflowing, which caused content to visibly center with
- * empty side margins.
- */
-function fontSizeForTurn(turn: number): number {
-  if (turn <= 4) return 13;
-  if (turn === 5) return 12;
-  if (turn === 6) return 11;
-  if (turn === 7) return 10;
-  return 9;
-}
 
 export function ReReadStage() {
   const activeDemo = useArcStore((s) => s.activeDemo);
@@ -68,11 +58,9 @@ export function ReReadStage() {
   const revealStep = useArcStore((s) => s.revealStep);
   const appMode = useArcStore((s) => s.appMode);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
+  const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
   const liveMessages = useChatStore((s) => s.messages);
   const liveAssistantBuffer = useChatStore((s) => s.liveAssistantBuffer);
-  // Used in orchestrator effect below
-  void totalTurns;
-  void turnsCap;
   const setCatalog = useArcStore((s) => s.setCatalog);
   const setActiveDemo = useArcStore((s) => s.setActiveDemo);
   const setAppMode = useArcStore((s) => s.setAppMode);
@@ -187,6 +175,15 @@ export function ReReadStage() {
     return commonPrefixLength(priorPayloadText, payloadText);
   }, [priorPayloadText, payloadText]);
 
+  const currentUserText = useMemo(() => {
+    if (currentTurn < 1) return '';
+    const sourceMessages = appMode === 'chat'
+      ? liveMessages
+      : activeDemo?.messages ?? [];
+    const userTurns = sourceMessages.filter((message) => message.role === 'user');
+    return userTurns[Math.max(0, currentTurn - 1)]?.content ?? '';
+  }, [activeDemo, appMode, currentTurn, liveMessages]);
+
   // Publish response boundary to store so ChatPanel knows when to flip
   // thinking-dots → streaming bubble for the current turn.
   useEffect(() => {
@@ -214,11 +211,19 @@ export function ReReadStage() {
     onComplete: handleStreamComplete,
   });
 
+  const { streamedChars: composedChars, isComplete: composingComplete } = useStreamText({
+    text: currentUserText,
+    newContentStart: 0,
+    fastRate: HUMAN_TYPE_CPS,
+    slowRate: HUMAN_TYPE_CPS,
+    playing: appMode === 'demo' && phase === 'composing',
+  });
+
   // Mirror streamedChars into the store so ChatPanel can sync its
   // thinking-dots → bubble swap + bubble content to the same clock.
   useEffect(() => {
-    setStreamProgress(streamedChars);
-  }, [streamedChars, setStreamProgress]);
+    setStreamProgress(phase === 'composing' ? composedChars : streamedChars);
+  }, [composedChars, phase, setStreamProgress, streamedChars]);
 
   // ---- Arc orchestrator — phase transition effects ----
   // ONLY runs in demo mode. Live chat mode drives its own phase
@@ -243,7 +248,9 @@ export function ReReadStage() {
       case 'composing':
         // User msg is now visible in chat pane. Hold briefly so the
         // viewer registers it, then the server starts reading the payload.
-        timer = scheduleNext('streaming', HOLD_COMPOSING);
+        if (composingComplete) {
+          timer = scheduleNext('streaming', HOLD_COMPOSING);
+        }
         break;
 
       case 'streaming':
@@ -266,7 +273,9 @@ export function ReReadStage() {
       }
 
       case 'peaking':
-        timer = scheduleNext('revealing', HOLD_PEAKING);
+        if (!debugHoldStateless) {
+          timer = scheduleNext('revealing', HOLD_PEAKING);
+        }
         break;
 
       default:
@@ -276,24 +285,113 @@ export function ReReadStage() {
     return () => {
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [phase, currentTurn, totalTurns, activeDemo, appMode, setPhase, setTurn]);
+  }, [
+    phase,
+    currentTurn,
+    totalTurns,
+    activeDemo,
+    appMode,
+    setPhase,
+    setTurn,
+    composingComplete,
+    debugHoldStateless,
+  ]);
 
-  // ---- Content muted boundary ----
-  // Everything up to `newContentStart` is "recall" — muted.
-  const mutedUpTo = newContentStart;
+  // ---- Context Engine scan progress ----
+  // The request body is the required prefill work. The response section still
+  // drives chat sync, but the left pane's traversal completes at the boundary.
+  const requestChars = Math.max(1, responseBoundary);
+  const responseCharsStreamed = Math.max(0, streamedChars - responseBoundary);
+  const scanProgress =
+    phase === 'streaming'
+      ? Math.min(streamedChars, responseBoundary) / requestChars
+      : phase === 'settled' ||
+          phase === 'peaking' ||
+          phase === 'revealing' ||
+          phase === 'post-arc'
+        ? 1
+        : 0;
 
-  // ---- Scale-out "camera" via font-size reduction (reflows, fills width) ----
-  const fontSizePx = fontSizeForTurn(Math.max(1, currentTurn));
+  const inboxResponses = useMemo<AgentInboxResponse[]>(() => {
+    if (currentTurn < 1) return [];
+
+    const responseVisible =
+      phase === 'settled' ||
+      phase === 'peaking' ||
+      phase === 'revealing' ||
+      phase === 'post-arc';
+
+    if (appMode === 'chat') {
+      const source = liveMessages.filter((message) => message.role !== 'system');
+      const responses: AgentInboxResponse[] = [];
+      for (let index = 0; index < currentTurn; index += 1) {
+        const turn = index + 1;
+        const assistant = source[index * 2 + 1];
+        const isCurrent = turn === currentTurn;
+        const content = isCurrent
+          ? liveAssistantBuffer || (assistant?.role === 'assistant' ? assistant.content : '')
+          : assistant?.role === 'assistant'
+            ? assistant.content
+            : '';
+        const visibleChars = isCurrent && phase === 'streaming'
+          ? Math.min(responseCharsStreamed, content.length)
+          : isCurrent && !responseVisible
+            ? 0
+            : content.length;
+        if (content) {
+          responses.push({
+            turn,
+            content,
+            visibleChars,
+            streaming: isCurrent && phase === 'streaming' && visibleChars < content.length,
+          });
+        }
+      }
+      return responses;
+    }
+
+    if (!activeDemo) return [];
+    const convo = activeDemo.messages.filter((message) => message.role !== 'system');
+    const clamp = Math.min(currentTurn, activeDemo.turnCount);
+    return Array.from({ length: clamp }, (_, index) => {
+      const turn = index + 1;
+      const assistant = convo[index * 2 + 1];
+      const content = assistant?.role === 'assistant' ? assistant.content : '';
+      const isCurrent = turn === clamp;
+      const visibleChars = isCurrent && phase === 'streaming'
+        ? Math.min(responseCharsStreamed, content.length)
+        : isCurrent && !responseVisible
+          ? 0
+          : content.length;
+      return {
+        turn,
+        content,
+        visibleChars,
+        streaming: isCurrent && phase === 'streaming' && visibleChars < content.length,
+      };
+    }).filter((response) => response.content.length > 0);
+  }, [
+    activeDemo,
+    appMode,
+    currentTurn,
+    liveAssistantBuffer,
+    liveMessages,
+    phase,
+    responseCharsStreamed,
+  ]);
 
   // ---- Stateful reveal: compact packet text for the punchline ----
   const compactPacketText = useMemo(() => {
-    if (!activeDemo) return '';
-    const convo = activeDemo.messages.filter((m) => m.role !== 'system');
+    const sourceMessages = activeDemo?.messages ?? liveMessages;
+    if (sourceMessages.length === 0) return '';
+    const convo = sourceMessages.filter((m) => m.role !== 'system');
     const userTurns = convo.filter((m) => m.role === 'user');
     const lastUser = userTurns[userTurns.length - 1]?.content ?? '';
-    const ctxId = makeContextId(activeDemo.key + ':' + activeDemo.title);
+    const ctxId = makeContextId(
+      activeDemo ? `${activeDemo.key}:${activeDemo.title}` : `live:${DEFAULT_LIVE_MODEL}`,
+    );
     return buildCompactPacketText(lastUser, ctxId);
-  }, [activeDemo]);
+  }, [activeDemo, liveMessages]);
 
   // Stream the compact packet only during 'compact-streaming' step
   const compactPlaying =
@@ -305,6 +403,14 @@ export function ReReadStage() {
     slowRate: 220,              // crisp + fast since this IS the relief
     playing: compactPlaying,
   });
+  const compactProgress =
+    phase === 'post-arc' ||
+    revealStep === 'badge' ||
+    revealStep === 'finalized'
+      ? 1
+      : compactPacketText
+        ? compactStreamed / compactPacketText.length
+        : 0;
 
   // Decide which content the JSON column shows:
   //   - normal stream during streaming/settled/peaking
@@ -315,6 +421,41 @@ export function ReReadStage() {
       (revealStep === 'compact-streaming' ||
         revealStep === 'badge' ||
         revealStep === 'finalized'));
+
+  const inboxModel = useMemo(() => {
+    if (currentTurn < 1) return { bundles: [] };
+
+    const contextId = makeContextId(
+      activeDemo ? `${activeDemo.key}:${activeDemo.title}` : `live:${DEFAULT_LIVE_MODEL}`,
+    );
+
+    if (appMode === 'chat') {
+      const inFlight =
+        liveMessages[liveMessages.length - 1]?.role === 'assistant' &&
+        phase === 'streaming';
+      const requestMessages = inFlight
+        ? liveMessages.slice(0, -1)
+        : liveMessages;
+
+      const bundles = Array.from({ length: currentTurn }, (_, i) =>
+        showingCompact || inferenceMode === 'stateful'
+          ? buildStatefulAgentRequestBundle(requestMessages, i + 1, contextId)
+          : buildStatelessAgentRequestBundle(requestMessages, i + 1),
+      );
+
+      return { bundles };
+    }
+
+    if (!activeDemo) return { bundles: [] };
+    const clamp = Math.min(currentTurn, activeDemo.turnCount);
+    const bundles = Array.from({ length: clamp }, (_, i) =>
+      showingCompact
+        ? buildStatefulAgentRequestBundle(activeDemo.messages, i + 1, contextId)
+        : buildStatelessAgentRequestBundle(activeDemo.messages, i + 1),
+    );
+
+    return { bundles };
+  }, [activeDemo, appMode, currentTurn, inferenceMode, liveMessages, phase, showingCompact]);
 
   // Vacuum-collapse animation for the JSON column.
   const isCollapsing =
@@ -329,16 +470,16 @@ export function ReReadStage() {
       style={{ background: 'var(--surface-dark)', color: 'var(--on-surface-dark)' }}
     >
       <ReReadHUD />
+      <DebugControls />
 
-      {/* Stateless JSON column — visible during the demo arc; vacuums up on reveal */}
+      {/* Stateless agent inbox - visible during the demo arc; vacuums up on reveal */}
       {!showingCompact && (
         <motion.div
-          className="flex-1 overflow-auto clinical-scroll px-8 pt-28 pb-16"
+          className="flex-1 overflow-hidden px-8 pt-28 pb-16"
           initial={false}
           animate={
             isCollapsing
               ? {
-                  fontSize: `${fontSizePx}px`,
                   scale: 0.05,
                   x: -240,
                   y: -180,
@@ -346,7 +487,6 @@ export function ReReadStage() {
                   filter: 'blur(4px)',
                 }
               : {
-                  fontSize: `${fontSizePx}px`,
                   scale: 1,
                   x: 0,
                   y: 0,
@@ -361,63 +501,29 @@ export function ReReadStage() {
           }
           style={{ transformOrigin: 'top left' }}
         >
-          {payloadText ? (
-            <JsonStream
-              text={payloadText}
-              streamedChars={streamedChars}
-              mutedUpTo={mutedUpTo}
-              hideCursor={phase !== 'streaming'}
-            />
-          ) : (
-            <div
-              className="h-full flex items-center justify-center text-[12px] font-mono uppercase tracking-[0.2em]"
-              style={{ color: 'var(--on-surface-dark-faint)' }}
-            >
-              Loading demo library…
-            </div>
-          )}
+          <AgentInboxStage
+            bundles={inboxModel.bundles}
+            responses={inboxResponses}
+            readProgress={scanProgress}
+            humanTyping={phase === 'composing'}
+          />
         </motion.div>
       )}
 
-      {/* Compact packet — the reveal punchline */}
+      {/* Compact agent inbox packet - the reveal punchline */}
       {showingCompact && (
         <motion.div
-          className="flex-1 overflow-hidden flex items-center justify-center px-8 pt-28 pb-16"
+          className="flex-1 overflow-hidden px-8 pt-28 pb-16"
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="w-full max-w-[480px]">
-            <div
-              className="text-[10px] font-mono uppercase tracking-[0.24em] mb-3"
-              style={{ color: 'var(--on-surface-dark-muted)' }}
-            >
-              ↓ stateful payload
-            </div>
-            <div
-              className="rounded-2xl p-6 ambient-shadow-dark"
-              style={{
-                background: 'var(--surface-container-high-dark)',
-                border: '1px solid rgba(0,163,255,0.18)',
-              }}
-            >
-              <JsonStream
-                text={compactPacketText}
-                streamedChars={
-                  phase === 'post-arc' ||
-                  revealStep === 'badge' ||
-                  revealStep === 'finalized'
-                    ? compactPacketText.length
-                    : compactStreamed
-                }
-                hideCursor={
-                  phase === 'post-arc' ||
-                  revealStep === 'badge' ||
-                  revealStep === 'finalized'
-                }
-              />
-            </div>
-          </div>
+          <AgentInboxStage
+            bundles={inboxModel.bundles}
+            responses={inboxResponses}
+            readProgress={compactProgress}
+            humanTyping={false}
+          />
         </motion.div>
       )}
 
