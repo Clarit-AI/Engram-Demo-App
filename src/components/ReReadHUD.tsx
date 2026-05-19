@@ -20,7 +20,7 @@ import { AnimatedNumber } from './AnimatedNumber';
  * the one that grows visibly absurd as the arc progresses — that's the
  * headline the viewer walks away with.
  */
-export const ReReadHUD = memo(function ReReadHUD() {
+export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: boolean }) {
   const activeDemo = useArcStore((s) => s.activeDemo);
   const currentTurn = useArcStore((s) => s.currentTurn);
   const totalTurns = useArcStore((s) => s.totalTurns);
@@ -51,7 +51,7 @@ export const ReReadHUD = memo(function ReReadHUD() {
 
   if (!activeDemo || !metrics) {
     return (
-      <div className="absolute left-8 right-8 top-4 z-20">
+      <div className={mobile ? 'absolute left-3 right-3 top-3 z-20' : 'absolute left-8 right-8 top-4 z-20'}>
         <div
           className="glass-chip-dark rounded-2xl px-4 py-3 text-[11px] font-mono uppercase tracking-[0.14em] ambient-shadow-dark"
           style={{ color: 'var(--on-surface-dark-faint)' }}
@@ -63,8 +63,8 @@ export const ReReadHUD = memo(function ReReadHUD() {
   }
 
   return (
-    <div className="absolute left-8 right-8 top-4 z-20 pointer-events-none">
-      <div className="glass-chip-dark flex items-center justify-between gap-5 rounded-2xl px-5 py-3 ambient-shadow-dark">
+    <div className={mobile ? 'absolute left-3 right-3 top-3 z-20 pointer-events-none' : 'absolute left-8 right-8 top-4 z-20 pointer-events-none'}>
+      <div className={mobile ? 'glass-chip-dark flex items-center justify-between gap-3 rounded-2xl px-4 py-3 ambient-shadow-dark' : 'glass-chip-dark flex items-center justify-between gap-5 rounded-2xl px-5 py-3 ambient-shadow-dark'}>
         <div className="flex min-w-0 items-center gap-3">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -87,7 +87,7 @@ export const ReReadHUD = memo(function ReReadHUD() {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-5">
+        <div className={mobile ? 'flex shrink-0 items-center gap-3' : 'flex shrink-0 items-center gap-5'}>
           <MetricLabel label="Turn" value={`${turn} / ${totalTurns || turnsCap}`} />
           <div>
             <div
@@ -107,16 +107,20 @@ export const ReReadHUD = memo(function ReReadHUD() {
               style={isStateful ? { color: 'var(--secondary-container)' } : undefined}
             />
           </div>
-          <MetricNumber label="Total" value={metrics.session.totalTokens} suffix=" tok" />
-          <MetricNumber label="Pages" value={metrics.session.totalPages} decimals={1} />
-          <MetricNumber
-            label="Cost"
-            value={metrics.session.totalCostUsd}
-            decimals={4}
-            prefix="$"
-            comma={false}
-            accent
-          />
+          {!mobile && (
+            <>
+              <MetricNumber label="Total" value={metrics.session.totalTokens} suffix=" tok" />
+              <MetricNumber label="Pages" value={metrics.session.totalPages} decimals={1} />
+              <MetricNumber
+                label="Cost"
+                value={metrics.session.totalCostUsd}
+                decimals={4}
+                prefix="$"
+                comma={false}
+                accent
+              />
+            </>
+          )}
           {isStateful && (
             <span
               className="rounded-full px-2 py-0.5 text-[8px] font-mono uppercase tracking-[0.18em] font-semibold"

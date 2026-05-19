@@ -49,7 +49,7 @@ const HOLD_COMPOSING = 650;  // user msg sits on chat pane before JSON starts re
 const HOLD_SETTLED = 450;    // brief beat after the full stream (request + response) completes
 const HOLD_PEAKING = 1500;
 
-export function ReReadStage() {
+export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
   const activeDemo = useArcStore((s) => s.activeDemo);
   const currentTurn = useArcStore((s) => s.currentTurn);
   const totalTurns = useArcStore((s) => s.totalTurns);
@@ -72,7 +72,7 @@ export function ReReadStage() {
   // ---- Boot catalog once ----
   const booted = useRef(false);
   useEffect(() => {
-    if (booted.current) return;
+    if (booted.current || activeDemo) return;
     booted.current = true;
     (async () => {
       const [catalogResult, defaultDemo] = await Promise.all([
@@ -90,7 +90,7 @@ export function ReReadStage() {
         });
       }
     })();
-  }, [setCatalog, setActiveDemo, setAppMode, turnsCap]);
+  }, [activeDemo, setCatalog, setActiveDemo, setAppMode, turnsCap]);
 
   // ---- Stream text for the CURRENT turn = request + delimiter + response ----
   // Demo mode: pre-recorded conversation drives both halves.
@@ -469,13 +469,13 @@ export function ReReadStage() {
       className="relative flex flex-col h-full overflow-hidden micro-grid-corner"
       style={{ background: 'var(--surface-dark)', color: 'var(--on-surface-dark)' }}
     >
-      <ReReadHUD />
-      <DebugControls />
+      <ReReadHUD mobile={mobile} />
+      <DebugControls mobile={mobile} />
 
       {/* Stateless agent inbox - visible during the demo arc; vacuums up on reveal */}
       {!showingCompact && (
         <motion.div
-          className="flex-1 overflow-hidden px-8 pt-28 pb-16"
+          className={mobile ? 'flex-1 overflow-hidden px-3 pb-12 pt-20' : 'flex-1 overflow-hidden px-8 pt-28 pb-16'}
           initial={false}
           animate={
             isCollapsing
@@ -513,7 +513,7 @@ export function ReReadStage() {
       {/* Compact agent inbox packet - the reveal punchline */}
       {showingCompact && (
         <motion.div
-          className="flex-1 overflow-hidden px-8 pt-28 pb-16"
+          className={mobile ? 'flex-1 overflow-hidden px-3 pb-12 pt-20' : 'flex-1 overflow-hidden px-8 pt-28 pb-16'}
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
@@ -528,10 +528,10 @@ export function ReReadStage() {
       )}
 
       {/* Post-arc controls — replay / actually-chat / mode toggle / demo picker */}
-      <PostArcControls />
+      <PostArcControls mobile={mobile} />
 
       {/* Timeline strip */}
-      <TimelineStrip />
+      <TimelineStrip mobile={mobile} />
     </div>
   );
 }

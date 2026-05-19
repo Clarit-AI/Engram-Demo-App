@@ -11,8 +11,8 @@
  *   - expose setters used by the orchestrator / UI controls
  *
  * Streaming state (currentChar, currentTurnPayload, isStreaming) and chat
- * state (messages, OpenRouter/Engram client) will live in purpose-built
- * stores added in later phases; this store is the single source of truth
+ * state (messages, server-side provider status) lives in purpose-built
+ * stores; this store is the single source of truth
  * for the arc state machine only.
  */
 

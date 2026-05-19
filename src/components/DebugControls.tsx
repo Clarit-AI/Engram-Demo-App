@@ -1,13 +1,13 @@
 import { memo } from 'react';
 import { useArcStore } from '../store/arcStore';
 
-export const DebugControls = memo(function DebugControls() {
+export const DebugControls = memo(function DebugControls({ mobile = false }: { mobile?: boolean }) {
   const phase = useArcStore((s) => s.phase);
   const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
   const setDebugHoldStateless = useArcStore((s) => s.setDebugHoldStateless);
   const setPhase = useArcStore((s) => s.setPhase);
 
-  if (!import.meta.env.DEV) return null;
+  if (!import.meta.env.DEV || mobile) return null;
 
   const canReveal = phase === 'peaking';
 

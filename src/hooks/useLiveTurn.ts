@@ -78,7 +78,7 @@ export function useLiveTurn() {
         setStatus('streaming-response');
 
         try {
-          const handle = provider.stream(messages, DEFAULT_LIVE_MODEL);
+          const handle = provider.stream(messages, DEFAULT_LIVE_MODEL, userTurnCount);
           inFlightRef.current = { abort: () => provider.abort() };
 
           for await (const delta of handle.textStream) {
@@ -86,6 +86,7 @@ export function useLiveTurn() {
           }
 
           await handle.fullText; // ensure the stream resolved cleanly
+          await handle.metadata; // capture final provider metadata for future UI surfaces
           finalizeAssistant();
           setStatus('done');
           setPhase('settled');

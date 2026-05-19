@@ -12,14 +12,14 @@ import { useArcStore } from '../store/arcStore';
  * as the arc moves through its state machine (streaming / awaiting /
  * responding / settled / peaking / revealing / post-arc).
  */
-export const TimelineStrip = memo(function TimelineStrip() {
+export const TimelineStrip = memo(function TimelineStrip({ mobile = false }: { mobile?: boolean }) {
   const currentTurn = useArcStore((s) => s.currentTurn);
   const turnsCap = useArcStore((s) => s.turnsCap);
   const phase = useArcStore((s) => s.phase);
 
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 px-8 py-4 z-10 pointer-events-none"
+      className={mobile ? 'absolute bottom-0 left-0 right-0 px-4 py-3 z-10 pointer-events-none' : 'absolute bottom-0 left-0 right-0 px-8 py-4 z-10 pointer-events-none'}
       style={{
         background:
           'linear-gradient(180deg, transparent 0%, rgba(10,17,25,0.85) 60%, rgba(10,17,25,1) 100%)',

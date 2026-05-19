@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { ReReadStage } from './components/ReReadStage';
 import { ChatPanel } from './components/ChatPanel';
 import { StatefulReveal } from './components/StatefulReveal';
+import { MobileGuidedComparison } from './components/MobileGuidedComparison';
 
 /**
  * App — root layout for the Clinical Futurist "Re-Read" build.
@@ -13,15 +15,41 @@ import { StatefulReveal } from './components/StatefulReveal';
  * landing experience — it starts playing on boot.
  */
 export default function App() {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+
   return (
-    <div className="flex h-full w-full">
-      <div className="w-full lg:w-[60%] h-full">
-        <ReReadStage />
-      </div>
-      <div className="hidden lg:block lg:w-[40%] h-full">
-        <ChatPanel />
-      </div>
+    <div className="h-full w-full">
+      {isDesktop ? <DesktopComparison /> : <MobileGuidedComparison />}
       <StatefulReveal />
     </div>
   );
+}
+
+function DesktopComparison() {
+  return (
+    <div className="flex h-full w-full">
+      <div className="h-full w-[60%]">
+        <ReReadStage />
+      </div>
+      <div className="h-full w-[40%]">
+        <ChatPanel />
+      </div>
+    </div>
+  );
+}
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window === 'undefined' ? false : window.matchMedia(query).matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const onChange = () => setMatches(media.matches);
+    onChange();
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, [query]);
+
+  return matches;
 }

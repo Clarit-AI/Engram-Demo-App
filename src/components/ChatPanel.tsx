@@ -26,7 +26,7 @@ import { ThinkingDots } from './ThinkingDots';
  *   • streaming (post-boundary) → streaming assistant bubble mirrored
  *   • settled+       → both full
  */
-export function ChatPanel() {
+export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
   const activeDemo = useArcStore((s) => s.activeDemo);
   const currentTurn = useArcStore((s) => s.currentTurn);
   const phase = useArcStore((s) => s.phase);
@@ -112,7 +112,7 @@ export function ChatPanel() {
       style={{ background: 'var(--surface)', color: 'var(--on-surface)' }}
     >
       {/* Header */}
-      <div className="flex-none px-6 pt-5 pb-3 flex items-center justify-between">
+      <div className={mobile ? 'flex-none px-4 pt-4 pb-2 flex items-center justify-between' : 'flex-none px-6 pt-5 pb-3 flex items-center justify-between'}>
         <span
           className="font-display text-[13px] font-semibold tracking-tight"
           style={{ color: 'var(--on-surface)' }}
@@ -147,7 +147,7 @@ export function ChatPanel() {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 clinical-scroll overflow-auto px-6 pb-4">
+      <div ref={scrollRef} className={mobile ? 'flex-1 clinical-scroll overflow-auto px-4 pb-3' : 'flex-1 clinical-scroll overflow-auto px-6 pb-4'}>
         {!hasAnyContent ? (
           <div
             className="h-full flex items-center justify-center text-[11px] font-mono uppercase tracking-[0.2em]"
@@ -235,7 +235,7 @@ export function ChatPanel() {
       </div>
 
       {/* Input — wired to useLiveTurn in chat mode */}
-      <div className="flex-none px-6 pb-5 pt-2">
+      <div className={mobile ? 'flex-none px-4 pb-4 pt-2' : 'flex-none px-6 pb-5 pt-2'}>
         <ChatInput
           disabled={inputDisabled}
           placeholder={inputPlaceholder}

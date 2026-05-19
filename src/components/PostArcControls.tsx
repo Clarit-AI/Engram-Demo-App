@@ -10,10 +10,8 @@ import { loadDemo, capDemoToTurns } from '../services/demoLibrary';
  *   • Replay Demo            — resets currentTurn to 0, kicks the arc
  *                              orchestrator back to 'intro' so the
  *                              cinematic plays again.
- *   • Actually Chat          — flips appMode to 'chat'. Phase 8 wires
- *                              the live Vercel-AI-SDK call; until then
- *                              this is a stub that emits a console
- *                              breadcrumb so the affordance is testable.
+ *   • Actually Chat          — flips appMode to 'chat' and routes live
+ *                              turns through the server-side provider API.
  *   • Mode (Stateful ⇄       — toggles inferenceMode. Stateful keeps
  *      Stateless)              the compact packet on screen; Stateless
  *                              would re-stream the full payload on the
@@ -28,7 +26,7 @@ import { loadDemo, capDemoToTurns } from '../services/demoLibrary';
  * gradient on the primary CTA, secondary-container teal on the active
  * stateful state (DESIGN.md "data success" semantic).
  */
-export const PostArcControls = memo(function PostArcControls() {
+export const PostArcControls = memo(function PostArcControls({ mobile = false }: { mobile?: boolean }) {
   const phase = useArcStore((s) => s.phase);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
   const setInferenceMode = useArcStore((s) => s.setInferenceMode);
@@ -69,9 +67,6 @@ export const PostArcControls = memo(function PostArcControls() {
 
   const handleActuallyChat = () => {
     setAppMode('chat');
-    // Phase 8 wiring pending — for now we just flip mode and log so the
-    // affordance is testable end-to-end without the live backend.
-    console.info('[PostArcControls] actually-chat: live backend not wired yet (Phase 8)');
   };
 
   const handleSelectDemo = async (key: string) => {
@@ -101,15 +96,15 @@ export const PostArcControls = memo(function PostArcControls() {
     <AnimatePresence>
       <motion.div
         key="post-arc-controls"
-        className="absolute bottom-14 left-1/2 -translate-x-1/2 z-30"
+        className={mobile ? 'absolute bottom-11 left-3 right-3 z-30' : 'absolute bottom-14 left-1/2 -translate-x-1/2 z-30'}
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 24, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 220, damping: 26, mass: 0.9, delay: 0.15 }}
       >
         <div
-          className="glass-chip-dark rounded-full px-2 py-2 flex items-center gap-1.5 ambient-shadow-dark"
-          style={{ minWidth: 'max-content' }}
+          className={mobile ? 'glass-chip-dark rounded-2xl px-2 py-2 flex flex-wrap items-center justify-center gap-1.5 ambient-shadow-dark' : 'glass-chip-dark rounded-full px-2 py-2 flex items-center gap-1.5 ambient-shadow-dark'}
+          style={{ minWidth: mobile ? '0' : 'max-content' }}
         >
           {/* Replay — primary CTA, signature gradient */}
           <button
