@@ -169,7 +169,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
               className="font-display text-[13px] font-semibold tracking-tight"
               style={{ color: 'var(--on-surface)' }}
             >
-              Conversation
+              What Humans See
             </div>
             <div className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
               {isChat ? 'Live chat surface' : 'Clean user view'}

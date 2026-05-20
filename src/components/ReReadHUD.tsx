@@ -75,7 +75,7 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
               className="font-display text-[13px] font-semibold tracking-tight"
               style={{ color: 'var(--on-surface-dark)' }}
             >
-              Agent inbox
+              What Agents See
             </div>
             <div
               className="truncate text-[9px] font-mono uppercase tracking-[0.14em]"
