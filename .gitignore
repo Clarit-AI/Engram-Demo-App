@@ -24,7 +24,15 @@ env.local
 .claude/
 .codex/
 .playwright-mcp/
+.remember/
 skills-lock.json
+
+# Test reports / deployment tool state.
+coverage/
+playwright-report/
+test-results/
+.vercel/
+.wrangler/
 
 # Local screenshots and one-off visual QA artifacts.
 /demo-*.png
