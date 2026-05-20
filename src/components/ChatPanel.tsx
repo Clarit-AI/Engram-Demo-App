@@ -157,8 +157,14 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
       style={{ background: 'var(--surface)', color: 'var(--on-surface)' }}
     >
       <div className={mobile ? 'flex-none px-4 pt-3 pb-2' : 'flex-none px-6 pt-4 pb-3'}>
-        <div className={mobile ? 'glass-chip flex flex-col gap-2 rounded-2xl px-3 py-3 ambient-shadow' : 'glass-chip flex items-center justify-between gap-3 rounded-2xl px-4 py-3 ambient-shadow'}>
-          <div className="min-w-0">
+        <div
+          className={
+            mobile
+              ? 'glass-chip flex flex-col gap-2 rounded-2xl px-3 py-3 ambient-shadow'
+              : 'glass-chip flex flex-col gap-2 rounded-2xl px-4 py-3 ambient-shadow xl:flex-row xl:items-center xl:justify-between xl:gap-3'
+          }
+        >
+          <div className="min-w-0 shrink-0">
             <div
               className="font-display text-[13px] font-semibold tracking-tight"
               style={{ color: 'var(--on-surface)' }}
@@ -170,7 +176,13 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
             </div>
           </div>
 
-          <div className={mobile ? 'no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5' : 'flex min-w-0 items-center justify-end gap-2'}>
+          <div
+            className={
+              mobile
+                ? 'no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5'
+                : 'no-scrollbar flex w-full min-w-0 items-center gap-2 overflow-x-auto pb-0.5 xl:w-auto xl:justify-end xl:overflow-visible xl:pb-0'
+            }
+          >
             <div
               className="flex min-h-9 shrink-0 items-center rounded-full p-0.5"
               role="radiogroup"
