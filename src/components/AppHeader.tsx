@@ -55,9 +55,9 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               <BrandMark brand="ovh" tone="primary" className="h-[10px] w-[62px]" />
             </div>
           )}
-          <span
+          <div
             className={[
-              'hidden rounded-full px-2.5 py-1 font-mono text-[8px] font-semibold uppercase tracking-[0.16em] sm:inline-flex',
+              'hidden flex-col rounded-full px-3 py-1.5 font-mono uppercase sm:inline-flex',
               isStateful ? 'text-secondary' : 'text-text-muted',
             ].join(' ')}
             style={{
@@ -65,8 +65,13 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               border: isStateful ? '1px solid rgba(104,250,221,0.28)' : '1px solid rgba(134,146,166,0.18)',
             }}
           >
-            {isStateful ? 'Engram active' : 'Engram bypass'}
-          </span>
+            <span className="text-[6px] font-semibold tracking-[0.18em] opacity-60">
+              Current view
+            </span>
+            <span className="text-[8px] font-semibold tracking-[0.16em]">
+              {isStateful ? 'With Engram' : 'Without Engram'}
+            </span>
+          </div>
         </div>
 
         {!mobile && (
