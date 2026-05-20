@@ -37,6 +37,7 @@ export function useLiveTurn() {
   const beginAssistant = useChatStore((s) => s.beginAssistant);
   const appendAssistantDelta = useChatStore((s) => s.appendAssistantDelta);
   const finalizeAssistant = useChatStore((s) => s.finalizeAssistant);
+  const setProviderMetadata = useChatStore((s) => s.setProviderMetadata);
   const setStatus = useChatStore((s) => s.setStatus);
   const setError = useChatStore((s) => s.setError);
 
@@ -55,6 +56,7 @@ export function useLiveTurn() {
       if (!trimmed) return;
 
       // 1) Push user msg
+      setProviderMetadata(null);
       appendUser(trimmed);
       setStatus('streaming-request');
 
@@ -86,7 +88,7 @@ export function useLiveTurn() {
           }
 
           await handle.fullText; // ensure the stream resolved cleanly
-          await handle.metadata; // capture final provider metadata for future UI surfaces
+          setProviderMetadata(await handle.metadata);
           finalizeAssistant();
           setStatus('done');
           setPhase('settled');
@@ -109,6 +111,7 @@ export function useLiveTurn() {
       finalizeAssistant,
       setStatus,
       setError,
+      setProviderMetadata,
       setPhase,
       setTurn,
     ],

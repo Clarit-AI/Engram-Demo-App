@@ -8,6 +8,7 @@
  */
 
 import { create } from 'zustand';
+import type { ChatProviderMetadata } from '../server/types';
 
 export interface ChatTurnMessage {
   id: string;
@@ -26,11 +27,16 @@ interface ChatState {
   errorMessage: string | null;
   /** Live-streaming buffer for the in-flight assistant response. */
   liveAssistantBuffer: string;
+  /** Metadata returned by the server-side provider switchboard for the latest turn. */
+  lastMetadata: ChatProviderMetadata | null;
+  /** Provider metadata keyed by live turn number. */
+  metadataByTurn: Record<number, ChatProviderMetadata>;
 
   appendUser: (content: string) => string; // returns id
   beginAssistant: () => string;            // returns id
   appendAssistantDelta: (delta: string) => void;
   finalizeAssistant: () => void;
+  setProviderMetadata: (metadata: ChatProviderMetadata | null) => void;
   setStatus: (s: LiveStatus) => void;
   setError: (msg: string) => void;
   reset: () => void;
@@ -46,6 +52,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   status: 'idle',
   errorMessage: null,
   liveAssistantBuffer: '',
+  lastMetadata: null,
+  metadataByTurn: {},
 
   appendUser: (content) => {
     const id = mkId();
@@ -97,6 +105,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
+  setProviderMetadata: (metadata) =>
+    set((s) => ({
+      lastMetadata: metadata,
+      metadataByTurn: metadata?.turnNumber
+        ? { ...s.metadataByTurn, [metadata.turnNumber]: metadata }
+        : s.metadataByTurn,
+    })),
+
   setStatus: (status) => set({ status, errorMessage: status === 'error' ? get().errorMessage : null }),
   setError: (msg) => set({ status: 'error', errorMessage: msg }),
 
@@ -106,5 +122,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       status: 'idle',
       errorMessage: null,
       liveAssistantBuffer: '',
+      lastMetadata: null,
+      metadataByTurn: {},
     }),
 }));

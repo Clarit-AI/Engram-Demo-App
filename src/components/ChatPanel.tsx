@@ -46,6 +46,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
   const liveStatus = useChatStore((s) => s.status);
   const liveError = useChatStore((s) => s.errorMessage);
   const liveAssistantBuffer = useChatStore((s) => s.liveAssistantBuffer);
+  const liveMetadata = useChatStore((s) => s.lastMetadata);
 
   const { send } = useLiveTurn();
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
@@ -251,18 +252,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
                 </AnimatePresence>
               </div>
             ) : (
-              <span
-                className="glass-chip shrink-0 rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em]"
-                style={{
-                  color: inferenceMode === 'stateful' ? 'var(--secondary)' : 'var(--primary)',
-                  background:
-                    inferenceMode === 'stateful'
-                      ? 'rgba(104,250,221,0.10)'
-                      : 'rgba(0,163,255,0.08)',
-                }}
-              >
-                Live · {inferenceMode}
-              </span>
+              <LiveProviderChips inferenceMode={inferenceMode} metadata={liveMetadata} />
             )}
           </div>
         </div>
@@ -366,6 +356,59 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
           sending={!isChat && phase === 'streaming' && responseCharsStreamed === 0}
         />
       </div>
+    </div>
+  );
+}
+
+function LiveProviderChips({
+  inferenceMode,
+  metadata,
+}: {
+  inferenceMode: 'stateless' | 'stateful';
+  metadata: ReturnType<typeof useChatStore.getState>['lastMetadata'];
+}) {
+  const accent = inferenceMode === 'stateful' ? 'var(--secondary)' : 'var(--primary)';
+  const background = inferenceMode === 'stateful'
+    ? 'rgba(104,250,221,0.10)'
+    : 'rgba(0,163,255,0.08)';
+  const requestShape = metadata?.requestShape === 'engram-delta'
+    ? 'Delta'
+    : metadata?.requestShape === 'full-history'
+      ? 'Full history'
+      : inferenceMode;
+
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <span
+        className="glass-chip rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em]"
+        style={{ color: accent, background }}
+      >
+        Live · {requestShape}
+      </span>
+      {metadata && (
+        <span
+          className="hidden rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted sm:inline-flex"
+          style={{
+            background: 'var(--surface-container)',
+            border: '1px solid rgba(25,28,30,0.08)',
+          }}
+          title={`Provider: ${metadata.providerMode}. Sent ${metadata.sentMessageCount} of ${metadata.canonicalMessageCount} messages. Estimated input: ${metadata.estimatedInputTokens} tokens.`}
+        >
+          {metadata.sentMessageCount}/{metadata.canonicalMessageCount} msg · ~{metadata.estimatedInputTokens} tok
+        </span>
+      )}
+      {metadata?.engram?.compatibilityResult && (
+        <span
+          className="hidden rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] sm:inline-flex"
+          style={{
+            color: 'var(--secondary)',
+            background: 'rgba(104,250,221,0.10)',
+            border: '1px solid rgba(104,250,221,0.20)',
+          }}
+        >
+          {metadata.engram.simulated ? 'Simulated' : metadata.engram.compatibilityResult}
+        </span>
+      )}
     </div>
   );
 }
