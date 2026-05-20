@@ -3,6 +3,7 @@ import {
   extractEngramMetadata,
   prepareChatStream,
 } from './chatProviders';
+import { reserveChatCapacity } from './session';
 import type { ProviderMetadata } from 'ai';
 import type {
   ChatMessageInput,
@@ -21,6 +22,21 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
+    },
+  });
+}
+
+function jsonResponseWithHeaders(
+  body: unknown,
+  status: number,
+  headers: Record<string, string>,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      ...headers,
     },
   });
 }
@@ -96,6 +112,7 @@ export async function handleChatRequest(
         'access-control-allow-origin': request.headers.get('origin') || '*',
         'access-control-allow-methods': 'POST, OPTIONS',
         'access-control-allow-headers': 'content-type',
+        'access-control-allow-credentials': 'true',
         'access-control-max-age': '86400',
       },
     });
@@ -118,12 +135,42 @@ export async function handleChatRequest(
   }
 
   const providerMode = normalizeProviderMode(body.mode, getDefaultProviderMode(env));
+  const capacity = reserveChatCapacity(request, env, body, messages);
+  if (!capacity.ok) {
+    return jsonResponseWithHeaders(capacity.body, capacity.status, {
+      ...capacity.headers,
+      'access-control-allow-origin': request.headers.get('origin') || '*',
+      'access-control-allow-credentials': 'true',
+    });
+  }
 
   let prepared: ReturnType<typeof prepareChatStream>;
   try {
     prepared = prepareChatStream(providerMode, body, messages, env, request);
+    prepared.metadata = {
+      ...prepared.metadata,
+      session: {
+        idPreview: capacity.session.id.slice(0, 8),
+        active: true,
+        createdAt: new Date(capacity.session.createdAt).toISOString(),
+        lastSeen: new Date(capacity.session.lastSeen).toISOString(),
+        expiresAt: new Date(capacity.session.expiresAt).toISOString(),
+        inFlight: capacity.session.inFlight,
+        requestsThisMinute: capacity.session.requestTimestamps.length,
+      },
+      rateLimit: capacity.metadata,
+    };
   } catch (error) {
-    return jsonResponse({ error: errorMessage(error), providerMode }, 500);
+    capacity.release();
+    return jsonResponseWithHeaders(
+      { error: errorMessage(error), providerMode },
+      500,
+      {
+        ...capacity.headers,
+        'access-control-allow-origin': request.headers.get('origin') || '*',
+        'access-control-allow-credentials': 'true',
+      },
+    );
   }
 
   const stream = new ReadableStream<Uint8Array>({
@@ -143,6 +190,8 @@ export async function handleChatRequest(
         const payload: ChatSseError = { message: errorMessage(error) };
         controller.enqueue(sse('error', payload));
         controller.close();
+      } finally {
+        capacity.release();
       }
     },
   });
@@ -153,7 +202,9 @@ export async function handleChatRequest(
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-store, no-transform',
       'x-clarit-provider-mode': providerMode,
+      ...capacity.headers,
       'access-control-allow-origin': request.headers.get('origin') || '*',
+      'access-control-allow-credentials': 'true',
     },
   });
 }

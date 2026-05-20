@@ -4,6 +4,7 @@ import { ChatPanel } from './components/ChatPanel';
 import { StatefulReveal } from './components/StatefulReveal';
 import { MobileGuidedComparison } from './components/MobileGuidedComparison';
 import { AppHeader } from './components/AppHeader';
+import { ConsentGate } from './components/ConsentGate';
 
 /**
  * App — root layout for the Clinical Futurist "Re-Read" build.
@@ -25,6 +26,7 @@ export default function App() {
         {isDesktop ? <DesktopComparison /> : <MobileGuidedComparison />}
       </div>
       <StatefulReveal />
+      <ConsentGate />
     </div>
   );
 }

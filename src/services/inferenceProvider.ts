@@ -106,6 +106,7 @@ function streamFromApi(
       const response = await fetch(CHAT_API_URL, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(request),
         signal: aborter.signal,
       });

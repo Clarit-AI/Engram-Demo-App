@@ -30,6 +30,42 @@ export interface ChatServerEnv {
   ENGRAM_MODEL?: string;
   DEFAULT_STATELESS_MODEL?: string;
   DEFAULT_PROVIDER_MODE?: ProviderMode;
+  RATE_LIMIT_ENABLED?: string;
+  RATE_LIMIT_DEBUG?: string;
+  SESSION_DEBUG?: string;
+  SESSION_COOKIE_NAME?: string;
+  SESSION_COOKIE_SECURE?: string;
+  SESSION_TTL_SECONDS?: string;
+  HEARTBEAT_TTL_SECONDS?: string;
+  MAX_ACTIVE_SESSIONS?: string;
+  MAX_GLOBAL_CONCURRENT_GENERATIONS?: string;
+  MAX_SESSION_CONCURRENT_GENERATIONS?: string;
+  MAX_REQUESTS_PER_SESSION_PER_MINUTE?: string;
+  MAX_REQUESTS_PER_IP_PER_MINUTE?: string;
+  MAX_INPUT_TOKENS_PER_REQUEST?: string;
+}
+
+export interface SessionMetadata {
+  idPreview: string;
+  active: boolean;
+  createdAt: string;
+  lastSeen: string;
+  expiresAt: string;
+  inFlight: number;
+  requestsThisMinute: number;
+}
+
+export interface RateLimitMetadata {
+  enabled: boolean;
+  activeSessions: number;
+  globalInFlight: number;
+  sessionInFlight: number;
+  requestsThisMinute: number;
+  maxRequestsPerMinute: number;
+  maxSessionConcurrent: number;
+  maxGlobalConcurrent: number;
+  estimatedInputTokens?: number;
+  providerMode?: ProviderMode | LegacyProviderMode;
 }
 
 export interface ChatProviderMetadata {
@@ -41,6 +77,8 @@ export interface ChatProviderMetadata {
   sentMessageCount: number;
   canonicalMessageCount: number;
   estimatedInputTokens: number;
+  session?: SessionMetadata;
+  rateLimit?: RateLimitMetadata;
   engram?: {
     simulated?: boolean;
     compatibilityResult?: string;

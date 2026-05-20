@@ -1,4 +1,5 @@
 import { handleChatRequest } from './server/chatHandler';
+import { handleSessionRequest } from './server/session';
 import type { ChatServerEnv } from './server/types';
 
 type WorkerEnv = ChatServerEnv & {
@@ -13,6 +14,10 @@ export default {
 
     if (url.pathname === '/api/chat') {
       return handleChatRequest(request, env);
+    }
+
+    if (url.pathname === '/api/session' || url.pathname === '/api/session/heartbeat') {
+      return handleSessionRequest(request, env);
     }
 
     if (env.ASSETS) {

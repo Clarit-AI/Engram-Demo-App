@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useArcStore } from '../store/arcStore';
 import { BrandMark, PoweredByOvh } from './BrandMark';
+import { SessionDebugChip } from './SessionDebugChip';
 
 export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
@@ -128,6 +129,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               </button>
             </div>
           )}
+          {!mobile && <SessionDebugChip />}
         </div>
       </div>
     </header>

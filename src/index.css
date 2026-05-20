@@ -229,3 +229,51 @@ h1,h2,h3,.font-display {
 @media (prefers-reduced-motion: reduce) {
   .clarity-flash, .clarity-flash body { animation: none; }
 }
+
+/* ============================================================
+   CookieConsent intro modal — styled as a deliberate demo gate
+   ============================================================ */
+#cc-main {
+  --cc-font-family: var(--font-sans);
+  --cc-modal-border-radius: 20px;
+  --cc-btn-border-radius: 999px;
+  --cc-primary-color: var(--primary);
+  --cc-bg: rgba(255, 255, 255, 0.96);
+  --cc-text: var(--text-primary);
+  --cc-btn-primary-bg: var(--primary);
+  --cc-btn-primary-border-color: var(--primary);
+  --cc-btn-primary-color: white;
+  --cc-btn-primary-hover-bg: var(--primary-container);
+  --cc-btn-primary-hover-border-color: var(--primary-container);
+}
+
+#cc-main .cm {
+  width: min(92vw, 620px);
+  padding: 26px;
+  border: 1px solid rgba(25, 28, 30, 0.10);
+  box-shadow: 0 24px 80px -28px rgba(0, 0, 0, 0.42);
+}
+
+#cc-main .cm__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+#cc-main .cm__desc {
+  max-width: 58ch;
+  color: var(--text-secondary);
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+#cc-main .cm__btn {
+  min-height: 44px;
+  padding-inline: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
