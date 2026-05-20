@@ -3,6 +3,7 @@ import { ReReadStage } from './components/ReReadStage';
 import { ChatPanel } from './components/ChatPanel';
 import { StatefulReveal } from './components/StatefulReveal';
 import { MobileGuidedComparison } from './components/MobileGuidedComparison';
+import { AppHeader } from './components/AppHeader';
 
 /**
  * App — root layout for the Clinical Futurist "Re-Read" build.
@@ -18,8 +19,11 @@ export default function App() {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   return (
-    <div className="h-full w-full">
-      {isDesktop ? <DesktopComparison /> : <MobileGuidedComparison />}
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      <AppHeader mobile={!isDesktop} />
+      <div className="min-h-0 flex-1">
+        {isDesktop ? <DesktopComparison /> : <MobileGuidedComparison />}
+      </div>
       <StatefulReveal />
     </div>
   );

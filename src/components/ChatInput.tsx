@@ -18,7 +18,7 @@ interface ChatInputProps {
  *   - NO heavy border
  *
  * Auto-grows to a sensible max height; Enter sends (Shift+Enter = newline).
- * Functionally wired up in Phase 7 (PostArcControls enables it for live chat).
+ * Functionally wired through the app header when live chat is enabled.
  */
 export function ChatInput({
   onSend,

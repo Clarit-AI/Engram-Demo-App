@@ -22,9 +22,7 @@ import {
 } from '../services/inferenceProvider';
 import { AgentInboxStage, type AgentInboxResponse } from './AgentInboxStage';
 import { ReReadHUD } from './ReReadHUD';
-import { DebugControls } from './DebugControls';
 import { TimelineStrip } from './TimelineStrip';
-import { PostArcControls } from './PostArcControls';
 import { useStreamText, commonPrefixLength } from '../hooks/useStreamText';
 import {
   buildStatefulAgentRequestBundle,
@@ -403,24 +401,20 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
     slowRate: 220,              // crisp + fast since this IS the relief
     playing: compactPlaying,
   });
-  const compactProgress =
-    phase === 'post-arc' ||
-    revealStep === 'badge' ||
-    revealStep === 'finalized'
-      ? 1
-      : compactPacketText
-        ? compactStreamed / compactPacketText.length
-        : 0;
+  const revealCompactActive =
+    phase === 'revealing' &&
+    (revealStep === 'compact-streaming' ||
+      revealStep === 'badge' ||
+      revealStep === 'finalized');
+
+  const compactProgress = compactPlaying && compactPacketText
+    ? compactStreamed / compactPacketText.length
+    : 1;
 
   // Decide which content the JSON column shows:
   //   - normal stream during streaming/settled/peaking
-  //   - compact packet during revealing (post-collapse) and post-arc
-  const showingCompact =
-    phase === 'post-arc' ||
-    (phase === 'revealing' &&
-      (revealStep === 'compact-streaming' ||
-        revealStep === 'badge' ||
-        revealStep === 'finalized'));
+  //   - compact packet when stateful is selected, plus the reveal beat
+  const showingCompact = inferenceMode === 'stateful' || revealCompactActive;
 
   const inboxModel = useMemo(() => {
     if (currentTurn < 1) return { bundles: [] };
@@ -438,7 +432,7 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
         : liveMessages;
 
       const bundles = Array.from({ length: currentTurn }, (_, i) =>
-        showingCompact || inferenceMode === 'stateful'
+        showingCompact
           ? buildStatefulAgentRequestBundle(requestMessages, i + 1, contextId)
           : buildStatelessAgentRequestBundle(requestMessages, i + 1),
       );
@@ -455,7 +449,7 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
     );
 
     return { bundles };
-  }, [activeDemo, appMode, currentTurn, inferenceMode, liveMessages, phase, showingCompact]);
+  }, [activeDemo, appMode, currentTurn, liveMessages, phase, showingCompact]);
 
   // Vacuum-collapse animation for the JSON column.
   const isCollapsing =
@@ -470,7 +464,6 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
       style={{ background: 'var(--surface-dark)', color: 'var(--on-surface-dark)' }}
     >
       <ReReadHUD mobile={mobile} />
-      <DebugControls mobile={mobile} />
 
       {/* Stateless agent inbox - visible during the demo arc; vacuums up on reveal */}
       {!showingCompact && (
@@ -526,9 +519,6 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
           />
         </motion.div>
       )}
-
-      {/* Post-arc controls — replay / actually-chat / mode toggle / demo picker */}
-      <PostArcControls mobile={mobile} />
 
       {/* Timeline strip */}
       <TimelineStrip mobile={mobile} />

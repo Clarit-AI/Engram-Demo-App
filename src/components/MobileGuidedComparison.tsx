@@ -57,8 +57,8 @@ export function MobileGuidedComparison() {
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-surface">
       <header className="relative z-30 flex-none border-b border-black/10 bg-surface-container-lowest px-3 pb-3 pt-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3 overflow-hidden">
+          <div className="min-w-0 flex-1">
             <div className="font-display text-[14px] font-semibold tracking-tight text-on-surface">
               Context comparison
             </div>
@@ -67,7 +67,7 @@ export function MobileGuidedComparison() {
             </div>
           </div>
           <div
-            className="flex shrink-0 rounded-full p-0.5"
+            className="flex max-w-[172px] shrink-0 rounded-full p-0.5"
             role="tablist"
             aria-label="Mobile comparison view"
             style={{ background: 'var(--surface-container)' }}
@@ -128,13 +128,13 @@ export function MobileGuidedComparison() {
       <AnimatePresence>
         {noticeMode !== 'dismissed' && appMode === 'demo' && (
           <motion.div
-            className="absolute inset-0 z-50 flex items-end bg-black/34 px-4 pb-5"
+            className="absolute inset-0 z-50 bg-black/34"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="w-full rounded-2xl bg-surface-container-lowest px-5 py-5 ambient-shadow"
+              className="absolute bottom-5 left-4 right-4 rounded-2xl bg-surface-container-lowest px-5 py-5 ambient-shadow"
               initial={reduced ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={reduced ? undefined : { y: 20, opacity: 0 }}
@@ -165,14 +165,14 @@ export function MobileGuidedComparison() {
                 <button
                   type="button"
                   onClick={() => setNoticeMode('dismissed')}
-                  className="sig-gradient min-h-11 flex-1 rounded-full px-4 text-[13px] font-semibold text-white"
+                  className="sig-gradient min-h-11 min-w-0 flex-1 rounded-full px-4 text-[13px] font-semibold text-white"
                 >
                   Start mobile walkthrough
                 </button>
                 <button
                   type="button"
                   onClick={() => setNoticeMode('desktop')}
-                  className="min-h-11 rounded-full px-4 text-[13px] font-semibold text-on-surface"
+                  className="min-h-11 shrink-0 rounded-full px-4 text-[13px] font-semibold text-on-surface"
                   style={{
                     background: 'var(--surface-container)',
                     border: '1px solid rgba(25,28,30,0.10)',
@@ -204,7 +204,7 @@ function ViewTab({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className="relative min-h-9 rounded-full px-4 text-[11px] font-semibold transition-colors"
+      className="relative min-h-9 rounded-full px-3.5 text-[11px] font-semibold transition-colors"
       style={{ color: active ? 'var(--on-surface)' : 'var(--text-muted)' }}
     >
       {active && (

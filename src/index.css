@@ -100,6 +100,8 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 body {
   font-family: var(--font-sans);
@@ -201,6 +203,14 @@ h1,h2,h3,.font-display {
 .payload-scroll::-webkit-scrollbar-thumb:hover,
 .clinical-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* ============================================================

@@ -27,6 +27,7 @@ export const StatefulReveal = memo(function StatefulReveal() {
   const revealStep = useArcStore((s) => s.revealStep);
   const setRevealStep = useArcStore((s) => s.setRevealStep);
   const setPhase = useArcStore((s) => s.setPhase);
+  const setInferenceMode = useArcStore((s) => s.setInferenceMode);
 
   // Choreography fence — every effect run gets a unique id and only its
   // own timers are allowed to fire. StrictMode and rapid re-renders are
@@ -71,7 +72,10 @@ export const StatefulReveal = memo(function StatefulReveal() {
       }
       setRevealStep('chroma');
     });
-    at(1180, () => setRevealStep('compact-streaming'));
+    at(1180, () => {
+      setInferenceMode('stateful');
+      setRevealStep('compact-streaming');
+    });
     at(2300, () => setRevealStep('badge'));
     at(4400, () => setRevealStep('finalized'));
     at(4900, () => setPhase('post-arc'));
@@ -91,9 +95,9 @@ export const StatefulReveal = memo(function StatefulReveal() {
   // Render only the overlay layers. The vacuum-collapse + compact-packet
   // streaming live inside ReReadStage; here we own everything that floats
   // above both panes.
-  if (phase !== 'revealing' && phase !== 'post-arc') return null;
+  if (phase !== 'revealing') return null;
 
-  const showSweep = phase === 'revealing' && (revealStep === 'sweep' || revealStep === 'chroma');
+  const showSweep = revealStep === 'sweep' || revealStep === 'chroma';
   const showBadge =
     revealStep === 'badge' || revealStep === 'finalized';
 
@@ -132,7 +136,7 @@ export const StatefulReveal = memo(function StatefulReveal() {
         {showBadge && (
           <motion.div
             key="headline"
-            className="fixed inset-0 pointer-events-none z-[55] flex items-center justify-center"
+            className="fixed inset-0 pointer-events-none z-[55]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -140,24 +144,48 @@ export const StatefulReveal = memo(function StatefulReveal() {
             aria-hidden
           >
             <motion.div
-              initial={{ y: 16, opacity: 0, scale: 0.96 }}
+              initial={{ y: 18, opacity: 0, scale: 0.96 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: -10, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 240, damping: 26, mass: 0.9 }}
-              className="text-center px-8 -mt-32 lg:mr-[40%]"
+              className="absolute left-6 right-6 top-[42%] max-w-[680px] rounded-[1.35rem] px-6 py-5 ambient-shadow-dark lg:left-[8%] lg:right-auto lg:w-[42vw]"
+              style={{
+                background: 'linear-gradient(135deg, rgba(16,27,40,0.92) 0%, rgba(10,17,25,0.86) 100%)',
+                border: '1px solid rgba(104,250,221,0.28)',
+                boxShadow: '0 24px 80px -34px rgba(0,0,0,0.82), 0 0 0 1px rgba(255,255,255,0.035) inset',
+              }}
             >
               <div
-                className="font-display text-[clamp(28px,4.6vw,52px)] font-bold tracking-[-0.025em] leading-tight"
-                style={{ color: 'var(--on-surface-dark)' }}
+                className="mb-3 inline-flex rounded-full px-2.5 py-1 font-mono text-[8px] font-semibold uppercase tracking-[0.18em]"
+                style={{
+                  color: 'var(--secondary-container)',
+                  background: 'rgba(104,250,221,0.12)',
+                  border: '1px solid rgba(104,250,221,0.26)',
+                }}
               >
-                This is all it{' '}
-                <span className="sig-gradient-text">needs to read.</span>
+                Engram active
               </div>
               <div
-                className="mt-3 font-mono text-[10px] uppercase tracking-[0.3em]"
+                className="font-display text-[clamp(26px,3.8vw,46px)] font-bold tracking-[-0.02em] leading-[1.02]"
+                style={{ color: 'var(--on-surface-dark)' }}
+              >
+                The re-read collapses.
+              </div>
+              <div
+                className="mt-3 max-w-[42rem] text-[14px] leading-relaxed"
+                style={{ color: 'var(--on-surface-dark)' }}
+              >
+                The next turn sends a context pointer and the latest message, not the full transcript again.
+              </div>
+              <div
+                className="mt-4 h-px w-full"
+                style={{ background: 'linear-gradient(90deg, rgba(104,250,221,0.72), rgba(104,250,221,0))' }}
+              />
+              <div
+                className="mt-3 font-mono text-[9px] uppercase tracking-[0.24em]"
                 style={{ color: 'var(--on-surface-dark-muted)' }}
               >
-                stateful · clarit.ai engram
+                context retained server-side
               </div>
             </motion.div>
           </motion.div>
