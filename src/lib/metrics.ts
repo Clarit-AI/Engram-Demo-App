@@ -111,3 +111,21 @@ export function computeStatefulTurnMetrics(
     turnCostUsd: (tokens / 1_000_000) * costPerMTok,
   };
 }
+
+export function computeStatefulSessionMetrics(
+  messages: DemoMessage[],
+  model: string,
+  upToTurn: number,
+  costPerMTok: number = DEFAULT_COST_PER_MTOK,
+): SessionMetrics {
+  let totalTokens = 0;
+  for (let t = 1; t <= upToTurn; t++) {
+    const m = computeStatefulTurnMetrics(messages, model, t, costPerMTok);
+    totalTokens += m.reReadTokens;
+  }
+  return {
+    totalTokens,
+    totalCostUsd: (totalTokens / 1_000_000) * costPerMTok,
+    totalPages: totalTokens / TOKENS_PER_PAGE,
+  };
+}

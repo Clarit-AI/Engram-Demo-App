@@ -3,6 +3,8 @@ import { useArcStore } from '../store/arcStore';
 import {
   computeTurnMetrics,
   computeSessionMetrics,
+  computeStatefulTurnMetrics,
+  computeStatefulSessionMetrics,
 } from '../lib/metrics';
 import { AnimatedNumber } from './AnimatedNumber';
 
@@ -27,6 +29,7 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
   const turnsCap = useArcStore((s) => s.turnsCap);
   const phase = useArcStore((s) => s.phase);
   const revealStep = useArcStore((s) => s.revealStep);
+  const inferenceMode = useArcStore((s) => s.inferenceMode);
 
   const turn = Math.max(1, currentTurn);
 
@@ -35,6 +38,7 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
   // thousands. Color shifts from sig-gradient (drama) to secondary teal
   // ("data success" semantic per spec).
   const isStateful =
+    inferenceMode === 'stateful' ||
     phase === 'post-arc' ||
     (phase === 'revealing' &&
       (revealStep === 'compact-streaming' ||
@@ -44,10 +48,14 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
   const metrics = useMemo(() => {
     if (!activeDemo) return null;
     const clamp = Math.min(turn, activeDemo.turnCount);
-    const turnM = computeTurnMetrics(activeDemo.messages, activeDemo.model, clamp);
-    const sessionM = computeSessionMetrics(activeDemo.messages, activeDemo.model, clamp);
+    const turnM = isStateful
+      ? computeStatefulTurnMetrics(activeDemo.messages, activeDemo.model, clamp)
+      : computeTurnMetrics(activeDemo.messages, activeDemo.model, clamp);
+    const sessionM = isStateful
+      ? computeStatefulSessionMetrics(activeDemo.messages, activeDemo.model, clamp)
+      : computeSessionMetrics(activeDemo.messages, activeDemo.model, clamp);
     return { ...turnM, session: sessionM };
-  }, [activeDemo, turn]);
+  }, [activeDemo, isStateful, turn]);
 
   if (!activeDemo || !metrics) {
     return (
@@ -97,7 +105,7 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
               Re-read
             </div>
             <AnimatedNumber
-              value={isStateful ? 34 : metrics.reReadTokens}
+              value={metrics.reReadTokens}
               suffix=" tok"
               className={
                 isStateful
