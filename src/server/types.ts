@@ -22,8 +22,12 @@ export interface ChatRequestBody {
 }
 
 export interface ChatServerEnv {
+  STATELESS_PROVIDER?: string;
   OPENROUTER_API_KEY?: string;
   OPENROUTER_BASE_URL?: string;
+  NVIDIA_NIM_API_KEY?: string;
+  NVIDIA_NIM_BASE_URL?: string;
+  NVIDIA_NIM_MODEL?: string;
   ENGRAM_BASE_URL?: string;
   ENGRAM_API_KEY?: string;
   ENGRAM_ADMIN_API_KEY?: string;
@@ -72,6 +76,7 @@ export interface RateLimitMetadata {
 
 export interface ChatProviderMetadata {
   providerMode: ProviderMode;
+  statelessProvider?: 'openrouter' | 'nvidia-nim';
   model: string;
   conversationId?: string;
   turnNumber?: number;

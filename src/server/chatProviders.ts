@@ -1,11 +1,15 @@
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createClarit } from '@clarit.ai/vercel-ai-provider';
 import { streamText } from 'ai';
 import type { ProviderMetadata } from 'ai';
 import {
   getEngramModel,
-  getStatelessModel,
+  getNvidiaNimModel,
+  getOpenRouterModel,
+  getStatelessProvider,
   makeConversationId,
+  NVIDIA_NIM_BASE_URL_DEFAULT,
   OPENROUTER_BASE_URL_DEFAULT,
 } from './env';
 import type {
@@ -15,6 +19,7 @@ import type {
   ChatServerEnv,
   ProviderMode,
 } from './types';
+import type { StatelessProviderName } from './env';
 
 export interface PreparedChatStream {
   textStream: AsyncIterable<string>;
@@ -58,6 +63,18 @@ function createOpenRouterClient(env: ChatServerEnv, origin: string) {
   });
 }
 
+function createNvidiaNimClient(env: ChatServerEnv) {
+  if (!env.NVIDIA_NIM_API_KEY) {
+    throw new Error('Missing NVIDIA_NIM_API_KEY on the server.');
+  }
+
+  return createOpenAICompatible({
+    name: 'nvidia-nim',
+    apiKey: env.NVIDIA_NIM_API_KEY,
+    baseURL: env.NVIDIA_NIM_BASE_URL || NVIDIA_NIM_BASE_URL_DEFAULT,
+  });
+}
+
 function getConversationId(body: ChatRequestBody, messages: ChatMessageInput[]): string {
   return (
     body.conversationId ||
@@ -72,12 +89,14 @@ function buildBaseMetadata(
   messages: ChatMessageInput[],
   sentMessages: ChatMessageInput[],
   requestShape: ChatProviderMetadata['requestShape'],
+  statelessProvider?: StatelessProviderName,
 ): ChatProviderMetadata {
   const conversationId =
     providerMode === 'stateless-openrouter' ? undefined : getConversationId(body, messages);
 
   return {
     providerMode,
+    statelessProvider,
     model,
     conversationId,
     turnNumber: body.turnNumber,
@@ -85,6 +104,40 @@ function buildBaseMetadata(
     sentMessageCount: sentMessages.length,
     canonicalMessageCount: messages.length,
     estimatedInputTokens: estimateMessagesTokens(sentMessages),
+  };
+}
+
+function prepareStatelessProviderStream(
+  statelessProvider: StatelessProviderName,
+  body: ChatRequestBody,
+  messages: ChatMessageInput[],
+  env: ChatServerEnv,
+  request: Request,
+) {
+  const origin = request.headers.get('origin') || new URL(request.url).origin;
+
+  if (statelessProvider === 'nvidia-nim') {
+    const model = getNvidiaNimModel(env, body.model);
+    const nim = createNvidiaNimClient(env);
+    return {
+      model,
+      result: streamText({
+        model: nim.chatModel(model),
+        messages,
+        abortSignal: request.signal,
+      }),
+    };
+  }
+
+  const model = getOpenRouterModel(env, body.model);
+  const openrouter = createOpenRouterClient(env, origin);
+  return {
+    model,
+    result: streamText({
+      model: openrouter(model),
+      messages,
+      abortSignal: request.signal,
+    }),
   };
 }
 
@@ -117,8 +170,6 @@ export function prepareChatStream(
   env: ChatServerEnv,
   request: Request,
 ): PreparedChatStream {
-  const origin = request.headers.get('origin') || new URL(request.url).origin;
-
   if (providerMode === 'stateful-engram') {
     if (!env.ENGRAM_BASE_URL) {
       throw new Error('Missing ENGRAM_BASE_URL on the server.');
@@ -161,13 +212,14 @@ export function prepareChatStream(
     };
   }
 
-  const model = getStatelessModel(env, body.model);
-  const openrouter = createOpenRouterClient(env, origin);
-  const result = streamText({
-    model: openrouter(model),
+  const statelessProvider = getStatelessProvider(env);
+  const { model, result } = prepareStatelessProviderStream(
+    statelessProvider,
+    body,
     messages,
-    abortSignal: request.signal,
-  });
+    env,
+    request,
+  );
 
   const metadataMessages = providerMode === 'simulated-engram'
     ? latestUserOnly(messages)
@@ -180,6 +232,7 @@ export function prepareChatStream(
     messages,
     metadataMessages,
     providerMode === 'simulated-engram' ? 'engram-delta' : 'full-history',
+    statelessProvider,
   );
 
   if (providerMode === 'simulated-engram') {
