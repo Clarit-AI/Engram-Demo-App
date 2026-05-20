@@ -332,14 +332,14 @@ export function reserveChatCapacity(
   if (isNew && activeSessionCount(now, config) > config.maxActiveSessions) {
     return reject(
       'active_sessions_exceeded',
-      'The live demo is at its active session limit. Please try again shortly.',
+      'The live simulation is at its active session limit. Please try again shortly.',
     );
   }
 
   if (estimatedInputTokens > config.maxInputTokensPerRequest) {
     return reject(
       'input_tokens_exceeded',
-      'That request is larger than the current live demo token limit.',
+      'That request is larger than the current live simulation token limit.',
       60,
       413,
     );
@@ -362,14 +362,14 @@ export function reserveChatCapacity(
   if (session.requestTimestamps.length >= config.maxRequestsPerSessionPerMinute) {
     return reject(
       'session_rate_exceeded',
-      'This session has reached the current live demo request limit.',
+      'This session has reached the current live simulation request limit.',
     );
   }
 
   if (bucket.requestTimestamps.length >= config.maxRequestsPerIpPerMinute) {
     return reject(
       'ip_rate_exceeded',
-      'This network has reached the current live demo request limit.',
+      'This network has reached the current live simulation request limit.',
     );
   }
 

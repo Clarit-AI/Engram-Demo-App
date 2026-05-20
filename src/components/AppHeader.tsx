@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useArcStore } from '../store/arcStore';
 import { BrandMark, PoweredByOvh } from './BrandMark';
 import { SessionDebugChip } from './SessionDebugChip';
+import { RecordingExportControl } from './RecordingExportControl';
 
 export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
@@ -92,7 +93,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
             onClick={handleReplay}
             className="sig-gradient min-h-9 rounded-full px-3.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            Replay demo
+            Replay simulation
           </button>
           <button
             type="button"
@@ -134,6 +135,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               </button>
             </div>
           )}
+          {!mobile && <RecordingExportControl />}
           {!mobile && <SessionDebugChip />}
         </div>
       </div>

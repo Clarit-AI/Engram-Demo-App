@@ -69,21 +69,21 @@ export function ConsentGate() {
               title: envText('VITE_CONSENT_MODAL_TITLE', 'Ngram demonstration'),
               description: envText(
                 'VITE_CONSENT_MODAL_DESCRIPTION',
-                'This interactive demo uses required cookies to keep a short-lived session, track active usage, and protect the live model from overload. By continuing, you acknowledge that the demo may connect to live inference providers and that request volume may be limited while the system is under test.',
+                'This interactive simulation uses required cookies to keep a short-lived session, track active usage, and protect the live model from overload. By continuing, you acknowledge that the experience may connect to live inference providers and that request volume may be limited while the system is under test.',
               ),
-              acceptAllBtn: envText('VITE_CONSENT_MODAL_ACCEPT', 'Start the demo'),
+              acceptAllBtn: envText('VITE_CONSENT_MODAL_ACCEPT', 'Start the simulation'),
               footer: envText('VITE_CONSENT_MODAL_FOOTER', ''),
             },
             preferencesModal: {
-              title: 'Demo cookies',
-              acceptAllBtn: envText('VITE_CONSENT_MODAL_ACCEPT', 'Start the demo'),
+              title: 'Simulation cookies',
+              acceptAllBtn: envText('VITE_CONSENT_MODAL_ACCEPT', 'Start the simulation'),
               savePreferencesBtn: 'Save preferences',
               closeIconLabel: 'Close',
               sections: [
                 {
                   title: 'Required session cookie',
                   description:
-                    'The live demo uses a required opaque session cookie for active-session tracking, rate limiting, and overload protection.',
+                    'The live simulation uses a required opaque session cookie for active-session tracking, rate limiting, and overload protection.',
                   linkedCategory: 'necessary',
                 },
               ],

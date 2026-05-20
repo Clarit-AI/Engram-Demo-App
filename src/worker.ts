@@ -20,6 +20,19 @@ export default {
       return handleSessionRequest(request, env);
     }
 
+    if (url.pathname === '/api/recording/export') {
+      return new Response(
+        JSON.stringify({ error: 'Server recording export is unavailable in this runtime.' }),
+        {
+          status: 501,
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'cache-control': 'no-store',
+          },
+        },
+      );
+    }
+
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
     }

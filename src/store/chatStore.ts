@@ -8,7 +8,7 @@
  */
 
 import { create } from 'zustand';
-import type { ChatProviderMetadata } from '../server/types';
+import type { ChatProviderMetadata, ProviderMode } from '../server/types';
 
 export interface ChatTurnMessage {
   id: string;
@@ -18,6 +18,32 @@ export interface ChatTurnMessage {
 }
 
 export type LiveStatus = 'idle' | 'streaming-request' | 'awaiting' | 'streaming-response' | 'done' | 'error';
+
+export interface RecordingTurnTrace {
+  id: string;
+  turnNumber: number;
+  mode: 'stateless' | 'stateful';
+  providerMode: ProviderMode;
+  model: string;
+  startedAt: number;
+  completedAt?: number;
+  durationMs?: number;
+  request: {
+    body: unknown;
+    messageCount: number;
+    tokenCount: number;
+    timestamp: number;
+  };
+  response: {
+    body: string;
+    tokenCount: number;
+    duration: number;
+  } | null;
+  providerMetadata?: ChatProviderMetadata | null;
+  error?: string;
+  redundantTokens: number;
+  newTokens: number;
+}
 
 interface ChatState {
   messages: ChatTurnMessage[];
@@ -31,11 +57,18 @@ interface ChatState {
   lastMetadata: ChatProviderMetadata | null;
   /** Provider metadata keyed by live turn number. */
   metadataByTurn: Record<number, ChatProviderMetadata>;
+  /** Env-gated authoring trace for exporting live conversations as playback JSON. */
+  recordingTurns: RecordingTurnTrace[];
 
   appendUser: (content: string) => string; // returns id
   beginAssistant: () => string;            // returns id
   appendAssistantDelta: (delta: string) => void;
   finalizeAssistant: () => void;
+  startRecordingTurn: (trace: RecordingTurnTrace) => void;
+  completeRecordingTurn: (
+    turnNumber: number,
+    patch: Partial<Omit<RecordingTurnTrace, 'id' | 'turnNumber' | 'startedAt' | 'request'>>,
+  ) => void;
   setProviderMetadata: (metadata: ChatProviderMetadata | null) => void;
   setStatus: (s: LiveStatus) => void;
   setError: (msg: string) => void;
@@ -54,6 +87,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   liveAssistantBuffer: '',
   lastMetadata: null,
   metadataByTurn: {},
+  recordingTurns: [],
 
   appendUser: (content) => {
     const id = mkId();
@@ -105,6 +139,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
+  startRecordingTurn: (trace) =>
+    set((s) => ({
+      recordingTurns: [
+        ...s.recordingTurns.filter((turn) => turn.turnNumber !== trace.turnNumber),
+        trace,
+      ],
+    })),
+
+  completeRecordingTurn: (turnNumber, patch) =>
+    set((s) => ({
+      recordingTurns: s.recordingTurns.map((turn) =>
+        turn.turnNumber === turnNumber ? { ...turn, ...patch } : turn,
+      ),
+    })),
+
   setProviderMetadata: (metadata) =>
     set((s) => ({
       lastMetadata: metadata,
@@ -124,5 +173,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       liveAssistantBuffer: '',
       lastMetadata: null,
       metadataByTurn: {},
+      recordingTurns: [],
     }),
 }));

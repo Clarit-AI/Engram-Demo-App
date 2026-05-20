@@ -24,6 +24,7 @@ import {
   getInferenceProvider,
   DEFAULT_LIVE_MODEL,
 } from '../services/inferenceProvider';
+import { estimateRequestTokens } from '../lib/agentRequestBundle';
 
 /** Brief beat after the user msg lands so it can register before JSON kicks in. */
 const HOLD_COMPOSING_LIVE = 400;
@@ -37,6 +38,8 @@ export function useLiveTurn() {
   const beginAssistant = useChatStore((s) => s.beginAssistant);
   const appendAssistantDelta = useChatStore((s) => s.appendAssistantDelta);
   const finalizeAssistant = useChatStore((s) => s.finalizeAssistant);
+  const startRecordingTurn = useChatStore((s) => s.startRecordingTurn);
+  const completeRecordingTurn = useChatStore((s) => s.completeRecordingTurn);
   const setProviderMetadata = useChatStore((s) => s.setProviderMetadata);
   const setStatus = useChatStore((s) => s.setStatus);
   const setError = useChatStore((s) => s.setError);
@@ -78,6 +81,25 @@ export function useLiveTurn() {
         setPhase('streaming');
         beginAssistant();
         setStatus('streaming-response');
+        const startedAt = Date.now();
+        const wire = provider.buildWirePayload(messages, DEFAULT_LIVE_MODEL);
+        startRecordingTurn({
+          id: `turn-${userTurnCount}-${startedAt}`,
+          turnNumber: userTurnCount,
+          mode: provider.mode,
+          providerMode: provider.providerMode,
+          model: DEFAULT_LIVE_MODEL,
+          startedAt,
+          request: {
+            body: wire.body,
+            messageCount: wire.body.messages.length,
+            tokenCount: estimateRequestTokens(JSON.stringify(wire.body)),
+            timestamp: startedAt,
+          },
+          response: null,
+          redundantTokens: 0,
+          newTokens: estimateRequestTokens(trimmed),
+        });
 
         try {
           const handle = provider.stream(messages, DEFAULT_LIVE_MODEL, userTurnCount);
@@ -87,14 +109,33 @@ export function useLiveTurn() {
             appendAssistantDelta(delta);
           }
 
-          await handle.fullText; // ensure the stream resolved cleanly
-          setProviderMetadata(await handle.metadata);
+          const fullText = await handle.fullText; // ensure the stream resolved cleanly
+          const metadata = await handle.metadata;
+          const completedAt = Date.now();
+          setProviderMetadata(metadata);
+          completeRecordingTurn(userTurnCount, {
+            completedAt,
+            durationMs: completedAt - startedAt,
+            providerMetadata: metadata,
+            response: {
+              body: fullText,
+              tokenCount: estimateRequestTokens(fullText),
+              duration: completedAt - startedAt,
+            },
+          });
           finalizeAssistant();
           setStatus('done');
           setPhase('settled');
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error('[useLiveTurn] stream failed:', msg);
+          const completedAt = Date.now();
+          completeRecordingTurn(userTurnCount, {
+            completedAt,
+            durationMs: completedAt - startedAt,
+            error: msg,
+            response: null,
+          });
           setError(msg);
           finalizeAssistant();
           setPhase('settled');
@@ -109,6 +150,8 @@ export function useLiveTurn() {
       beginAssistant,
       appendAssistantDelta,
       finalizeAssistant,
+      startRecordingTurn,
+      completeRecordingTurn,
       setStatus,
       setError,
       setProviderMetadata,

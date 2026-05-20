@@ -153,7 +153,7 @@ export function MobileGuidedComparison() {
               ) : (
                 <>
                   <h2 className="font-display text-[18px] font-semibold tracking-tight text-on-surface">
-                    This demo is clearest on desktop.
+                    This simulation is clearest on desktop.
                   </h2>
                   <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">
                     Mobile uses a guided walkthrough that switches between the clean user

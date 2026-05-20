@@ -43,6 +43,8 @@ export interface ChatServerEnv {
   MAX_REQUESTS_PER_SESSION_PER_MINUTE?: string;
   MAX_REQUESTS_PER_IP_PER_MINUTE?: string;
   MAX_INPUT_TOKENS_PER_REQUEST?: string;
+  RECORDING_EXPORT_SERVER_ENABLED?: string;
+  RECORDING_EXPORT_DIR?: string;
 }
 
 export interface SessionMetadata {

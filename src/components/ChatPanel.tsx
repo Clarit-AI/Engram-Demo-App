@@ -149,7 +149,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
     ? liveStatus === 'streaming-response'
       ? 'streaming…'
       : 'Message the model…'
-    : 'Chat unlocks after the demo…';
+    : 'Chat unlocks after the simulation…';
 
   return (
     <div
@@ -277,7 +277,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
             className="h-full flex items-center justify-center text-[11px] font-mono uppercase tracking-[0.2em]"
             style={{ color: 'var(--text-muted)' }}
           >
-            {isChat ? 'send a message to begin…' : activeDemo ? 'preparing demo…' : 'booting…'}
+            {isChat ? 'send a message to begin…' : activeDemo ? 'preparing simulation…' : 'booting…'}
           </div>
         ) : (
           <div className="flex flex-col gap-3 py-2">
