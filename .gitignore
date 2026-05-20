@@ -10,7 +10,28 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Local env / secrets. Keep examples tracked, never real values.
+.env
+.env.*
+env.local
 *.local
+!.env.example
+
+# Local agent/tooling state and generated worktrees.
+.agent/
+.agents/
+.claude/
+.codex/
+.playwright-mcp/
+skills-lock.json
+
+# Local screenshots and one-off visual QA artifacts.
+/demo-*.png
+/landing-page.png
+/stateless-mode.png
+/turn-progress.png
+/ovhcloud_master_logo_fullcolor_rgb.webp
 
 # Editor directories and files
 .vscode/*
