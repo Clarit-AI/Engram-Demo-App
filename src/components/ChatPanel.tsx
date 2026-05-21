@@ -172,7 +172,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
               What Humans See
             </div>
             <div className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-              {isChat ? 'Live chat surface' : 'Clean user view'}
+              Clean user view
             </div>
           </div>
 
@@ -386,7 +386,7 @@ function LiveProviderChips({
   const requestShape = metadata?.requestShape === 'engram-delta'
     ? 'Delta'
     : metadata?.requestShape === 'full-history'
-      ? 'Clean user view'
+      ? 'Full history'
       : inferenceMode;
 
   return (
