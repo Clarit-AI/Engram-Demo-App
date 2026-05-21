@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useArcStore } from '../store/arcStore';
 import * as CookieConsent from '@gothassos/vanilla-cookieconsent';
 import '@gothassos/vanilla-cookieconsent/dist/cookieconsent.css';
 import { useDemoSessionHeartbeat } from '../hooks/useDemoSessionHeartbeat';
@@ -15,15 +16,10 @@ function envText(name: string, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-function hasConsentCookie(): boolean {
-  if (typeof document === 'undefined') return false;
-  return document.cookie
-    .split(';')
-    .some((part) => part.trim().startsWith(`${CONSENT_COOKIE_NAME}=`));
-}
 
 export function ConsentGate() {
-  const [consented, setConsented] = useState(hasConsentCookie);
+  const consented = useArcStore((s) => s.consented);
+  const setConsented = useArcStore((s) => s.setConsented);
   useDemoSessionHeartbeat(consented);
 
   useEffect(() => {
@@ -102,7 +98,7 @@ export function ConsentGate() {
     return () => {
       window.removeEventListener(CONSENT_EVENT, markConsented);
     };
-  }, []);
+  }, [setConsented]);
 
   return null;
 }

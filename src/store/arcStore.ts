@@ -20,6 +20,14 @@ import { create } from 'zustand';
 import type { DemoMeta } from '../services/demoLibrary';
 import { DEFAULT_DEMO_KEY } from '../services/demoLibrary';
 
+function hasConsentCookie(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.cookie
+    .split(';')
+    .some((part) => part.trim().startsWith('ngram_demo_consent='));
+}
+
+
 export type AppMode = 'demo' | 'chat' | null;
 export type InferenceMode = 'stateless' | 'stateful';
 export type ArcPhase =
@@ -73,6 +81,10 @@ interface ArcState {
   // --- Stateful reveal sub-state ---
   revealStep: RevealStep;
 
+  // --- Consent state ---
+  consented: boolean;
+  setConsented: (consented: boolean) => void;
+
   // --- Local debug controls ---
   debugHoldStateless: boolean;
 
@@ -108,6 +120,9 @@ export const useArcStore = create<ArcState>((set, get) => ({
   responseBoundary: Number.MAX_SAFE_INTEGER,
 
   revealStep: 'idle',
+
+  consented: hasConsentCookie(),
+  setConsented: (consented) => set({ consented }),
 
   debugHoldStateless: true,
 
