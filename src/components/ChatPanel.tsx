@@ -161,9 +161,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
           className={
             mobile
               ? 'glass-chip flex flex-col gap-2 rounded-2xl px-3 py-3 ambient-shadow'
-              : isChat
-                ? 'glass-chip flex flex-col gap-2 rounded-2xl px-4 py-3 ambient-shadow 2xl:flex-row 2xl:items-center 2xl:justify-between 2xl:gap-3'
-                : 'glass-chip flex flex-col gap-2 rounded-2xl px-4 py-3 ambient-shadow xl:flex-row xl:items-center xl:justify-between xl:gap-3'
+              : 'glass-chip flex flex-col gap-2 rounded-2xl px-4 py-3 ambient-shadow xl:flex-row xl:items-center xl:justify-between xl:gap-3'
           }
         >
           <div className="min-w-0 shrink-0">
@@ -182,9 +180,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
             className={
               mobile
                 ? 'no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5'
-                : isChat
-                  ? 'no-scrollbar flex w-full min-w-0 items-center gap-2 overflow-x-auto pb-0.5 2xl:w-auto 2xl:justify-end 2xl:overflow-visible 2xl:pb-0'
-                  : 'no-scrollbar flex w-full min-w-0 items-center gap-2 overflow-x-auto pb-0.5 xl:w-auto xl:justify-end xl:overflow-visible xl:pb-0'
+                : 'no-scrollbar flex w-full min-w-0 items-center gap-2 overflow-x-auto pb-0.5 xl:w-auto xl:justify-end xl:overflow-visible xl:pb-0'
             }
           >
             <div
@@ -401,18 +397,7 @@ function LiveProviderChips({
       >
         Live · {requestShape}
       </span>
-      {metadata && (
-        <span
-          className="hidden rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted sm:inline-flex"
-          style={{
-            background: 'var(--surface-container)',
-            border: '1px solid rgba(25,28,30,0.08)',
-          }}
-          title={`Provider: ${metadata.providerMode}. Sent ${metadata.sentMessageCount} of ${metadata.canonicalMessageCount} messages. Estimated input: ${metadata.estimatedInputTokens} tokens.`}
-        >
-          {metadata.sentMessageCount}/{metadata.canonicalMessageCount} msg · ~{metadata.estimatedInputTokens} tok
-        </span>
-      )}
+
       {metadata?.engram?.compatibilityResult && (
         <span
           className="hidden rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] sm:inline-flex"
