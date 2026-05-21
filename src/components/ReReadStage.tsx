@@ -59,6 +59,9 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
   const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
   const liveMessages = useChatStore((s) => s.messages);
   const liveAssistantBuffer = useChatStore((s) => s.liveAssistantBuffer);
+  // The inference mode locked at turn-send time — stable across UI toggles.
+  const chatPayloadMode = useArcStore((s) => s.chatPayloadMode);
+
   const setCatalog = useArcStore((s) => s.setCatalog);
   const setActiveDemo = useArcStore((s) => s.setActiveDemo);
   const setAppMode = useArcStore((s) => s.setAppMode);
@@ -108,7 +111,10 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
         ? liveMessages.slice(0, -1)
         : liveMessages;
 
-      const provider = getInferenceProvider(inferenceMode);
+      // Use the snapshotted mode (locked at send time) so that toggling
+      // stateless/stateful in the UI doesn't change payloadText mid-turn
+      // and trigger a useStreamText reset/replay.
+      const provider = getInferenceProvider(chatPayloadMode);
       const wire = provider.buildWirePayload(requestMessages, DEFAULT_LIVE_MODEL);
       const requestText = stringifyWirePayload(wire);
       const responseContent = liveAssistantBuffer;
@@ -133,22 +139,21 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
 
     const { fullText, responseBoundary: boundary } = composeTurnStreamText(requestText, responseContent);
     return { payloadText: fullText, responseBoundary: boundary };
-  }, [appMode, activeDemo, currentTurn, liveMessages, liveAssistantBuffer, inferenceMode, phase]);
+  }, [appMode, activeDemo, currentTurn, liveMessages, liveAssistantBuffer, phase, chatPayloadMode]);
 
   /** Prior turn full stream text — used to compute recall divergence */
   const priorPayloadText = useMemo(() => {
     if (currentTurn < 2) return '';
     if (appMode === 'chat') {
-      // Build the prior turn's wire payload from chatStore history. In
-      // stateless mode this gives a meaningful "recall" prefix; in
-      // stateful mode the wire payload is already minimal so divergence
-      // is essentially the whole thing (and that's the correct story).
+      // Build the prior turn's wire payload from chatStore history. Use the
+      // snapshotted mode for the same reason as payloadText — we don't want
+      // a UI toggle to change the recall prefix and cause a stream restart.
       const userIdxs: number[] = [];
       liveMessages.forEach((m, i) => { if (m.role === 'user') userIdxs.push(i); });
       const priorUserIdx = userIdxs[currentTurn - 2];
       if (priorUserIdx === undefined) return '';
       const priorMessages = liveMessages.slice(0, priorUserIdx + 1);
-      const provider = getInferenceProvider(inferenceMode);
+      const provider = getInferenceProvider(chatPayloadMode);
       const wire = provider.buildWirePayload(priorMessages, DEFAULT_LIVE_MODEL);
       const requestText = stringifyWirePayload(wire);
       // Prior turn's assistant text (already in store)
@@ -166,7 +171,7 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
     const responseContent = convo[2 * prior - 1]?.content ?? '';
     const { fullText } = composeTurnStreamText(requestText, responseContent);
     return fullText;
-  }, [activeDemo, currentTurn, appMode, liveMessages, inferenceMode]);
+  }, [activeDemo, currentTurn, appMode, liveMessages, chatPayloadMode]);
 
   const newContentStart = useMemo(() => {
     if (!priorPayloadText) return 0; // turn 1 → everything is new

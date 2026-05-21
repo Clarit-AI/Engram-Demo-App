@@ -33,6 +33,7 @@ export function useLiveTurn() {
   const inferenceMode = useArcStore((s) => s.inferenceMode);
   const setPhase = useArcStore((s) => s.setPhase);
   const setTurn = useArcStore((s) => s.setTurn);
+  const setChatPayloadMode = useArcStore((s) => s.setChatPayloadMode);
 
   const appendUser = useChatStore((s) => s.appendUser);
   const beginAssistant = useChatStore((s) => s.beginAssistant);
@@ -62,6 +63,9 @@ export function useLiveTurn() {
       setProviderMetadata(null);
       appendUser(trimmed);
       setStatus('streaming-request');
+      // Lock in the current inference mode for this turn's visualization so
+      // that toggling the UI toggle mid-conversation doesn't replay the JSON.
+      setChatPayloadMode(inferenceMode);
 
       // 2) Snapshot the messages AFTER the append so the provider sees the user msg
       const messages = useChatStore.getState().messages;
@@ -146,6 +150,7 @@ export function useLiveTurn() {
     },
     [
       inferenceMode,
+      setChatPayloadMode,
       appendUser,
       beginAssistant,
       appendAssistantDelta,
