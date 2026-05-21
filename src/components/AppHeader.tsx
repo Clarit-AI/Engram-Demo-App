@@ -4,6 +4,13 @@ import { BrandMark, PoweredByOvh } from './BrandMark';
 import { SessionDebugChip } from './SessionDebugChip';
 import { RecordingExportControl } from './RecordingExportControl';
 
+/** Show debug controls when VITE_SESSION_DEBUG=true, or when running locally in dev mode. */
+function shouldShowDebugControls(): boolean {
+  if (import.meta.env.VITE_SESSION_DEBUG === 'true') return true;
+  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+}
+
 export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
@@ -108,10 +115,11 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
             Actually chat
           </button>
 
-          {import.meta.env.DEV && !mobile && (
+          {shouldShowDebugControls() && !mobile && (
             <div className="flex min-h-9 items-center gap-1 rounded-full bg-surface-container px-1.5">
               <button
                 type="button"
+                title={debugHoldStateless ? 'Hold is ON — reveal will not auto-trigger after the last turn' : 'Hold is OFF — reveal will auto-trigger after the last turn'}
                 onClick={() => setDebugHoldStateless(!debugHoldStateless)}
                 className="rounded-full px-2.5 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em]"
                 style={{
@@ -124,11 +132,12 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               <button
                 type="button"
                 disabled={!canReveal}
+                title={canReveal ? 'Trigger the stateful reveal now' : 'Reveal activates only after the last demo turn completes (phase: peaking)'}
                 onClick={() => {
                   setDebugHoldStateless(false);
                   setPhase('revealing');
                 }}
-                className="rounded-full px-2.5 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] disabled:opacity-40"
+                className="rounded-full px-2.5 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ color: 'var(--secondary)' }}
               >
                 Reveal
