@@ -57,7 +57,6 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
   const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
-  const consented = useArcStore((s) => s.consented);
   const liveMessages = useChatStore((s) => s.messages);
   const liveAssistantBuffer = useChatStore((s) => s.liveAssistantBuffer);
   const setCatalog = useArcStore((s) => s.setCatalog);
@@ -238,7 +237,6 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
 
     switch (phase) {
       case 'intro':
-        if (!consented) break;
         // First-turn kickoff: user message appears in chat pane BEFORE
         // the JSON starts "reading" it on the left (realistic ordering).
         window.setTimeout(() => setTurn(1), HOLD_INTRO - 10);
@@ -295,7 +293,6 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
     setTurn,
     composingComplete,
     debugHoldStateless,
-    consented,
   ]);
 
   // ---- Context Engine scan progress ----

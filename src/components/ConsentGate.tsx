@@ -37,11 +37,11 @@ export function ConsentGate() {
     void CookieConsent.run({
       mode: 'opt-in',
       autoShow: true,
-      disablePageInteraction: true,
+      disablePageInteraction: false,
       guiOptions: {
         consentModal: {
-          layout: 'box wide',
-          position: 'middle center',
+          layout: 'bar',
+          position: 'bottom',
           equalWeightButtons: false,
         },
       },
