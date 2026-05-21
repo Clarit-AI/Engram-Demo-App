@@ -386,13 +386,13 @@ function LiveProviderChips({
   const requestShape = metadata?.requestShape === 'engram-delta'
     ? 'Delta'
     : metadata?.requestShape === 'full-history'
-      ? 'Full history'
+      ? 'Clean user view'
       : inferenceMode;
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">
       <span
-        className="glass-chip rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em]"
+        className="glass-chip rounded-full min-h-9 flex items-center px-3.5 text-[9px] font-mono uppercase tracking-[0.18em]"
         style={{ color: accent, background }}
       >
         Live · {requestShape}
@@ -400,7 +400,7 @@ function LiveProviderChips({
 
       {metadata?.engram?.compatibilityResult && (
         <span
-          className="hidden rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] sm:inline-flex"
+          className="hidden rounded-full min-h-9 items-center px-3 text-[9px] font-mono uppercase tracking-[0.16em] sm:inline-flex"
           style={{
             color: 'var(--secondary)',
             background: 'rgba(104,250,221,0.10)',
