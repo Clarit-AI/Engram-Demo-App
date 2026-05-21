@@ -1,3 +1,11 @@
+import type {
+  ComparativePlaybackData,
+  ComparativeRecordingMetadata,
+  ComparativeTotals,
+  ComparativeTurnMetrics,
+} from '../lib/comparativeRecording';
+import { computeComparativeTotals } from '../lib/comparativeRecording';
+
 /**
  * demoLibrary.ts
  *
@@ -24,6 +32,8 @@ export interface DemoMeta {
   turnCount: number;
   /** Raw messages array (user/assistant/system) in conversation order */
   messages: DemoMessage[];
+  /** Optional real comparative metrics for exportVersion 3 recordings. */
+  comparative?: ComparativePlaybackData;
 }
 
 export interface DemoMessage {
@@ -41,6 +51,11 @@ interface RawDemoFile {
     model?: string;
     messages?: DemoMessage[];
   };
+  comparative?: ComparativeRecordingMetadata;
+  totals?: ComparativeTotals;
+  turnPayloads?: Array<{
+    comparative?: ComparativeTurnMetrics;
+  }>;
   // legacy flat shape guard
   id?: string;
   title?: string;
@@ -61,6 +76,21 @@ const BUNDLED_DEMO_FILES: Array<{ key: string; file: string }> = [
   { key: 'mythology-greek', file: '/demos/demo-mythology.json' },
   { key: 'conversation-long', file: '/demos/conversation.json' },
 ];
+
+function normalizeComparative(raw: RawDemoFile): ComparativePlaybackData | undefined {
+  const metadata = raw.comparative;
+  const turns = raw.turnPayloads
+    ?.map((payload) => payload.comparative)
+    .filter((turn): turn is ComparativeTurnMetrics => Boolean(turn));
+
+  if (!metadata || !turns || turns.length === 0) return undefined;
+
+  return {
+    metadata,
+    turns,
+    totals: raw.totals ?? computeComparativeTotals(turns),
+  };
+}
 
 /**
  * Normalize a raw JSON file (either the nested `{conversation: {...}}`
@@ -84,6 +114,7 @@ function normalize(key: string, raw: RawDemoFile): DemoMeta | null {
     model: conv.model ?? 'unknown-model',
     turnCount: userMsgs.length,
     messages: conv.messages,
+    comparative: normalizeComparative(raw),
   };
 }
 

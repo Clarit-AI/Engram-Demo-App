@@ -1,5 +1,6 @@
 import type { ChatTurnMessage, RecordingTurnTrace } from '../store/chatStore';
 import type { ChatProviderMetadata } from '../server/types';
+import type { PlaybackExportFile } from '../lib/playbackExportTypes';
 import { estimateRequestTokens } from '../lib/agentRequestBundle';
 
 export interface PlaybackExportInput {
@@ -8,46 +9,6 @@ export interface PlaybackExportInput {
   model: string;
   title?: string;
   mode?: 'stateless' | 'stateful';
-}
-
-interface PlaybackExportFile {
-  conversation: {
-    id: string;
-    title: string;
-    messages: Array<{
-      id: string;
-      role: ChatTurnMessage['role'];
-      content: string;
-      timestamp: number;
-      tokenCount: number;
-    }>;
-    createdAt: number;
-    updatedAt: number;
-    mode: 'stateless' | 'stateful';
-    model: string;
-  };
-  turnPayloads: Array<{
-    id: string;
-    request: {
-      body: unknown;
-      tokenCount: number;
-      messageCount: number;
-      timestamp: number;
-      providerMode: string;
-    };
-    response: {
-      body: string;
-      duration: number;
-      tokenCount: number;
-    } | null;
-    providerMetadata?: ChatProviderMetadata | null;
-    redundantTokens: number;
-    newTokens: number;
-    error?: string;
-  }>;
-  exportedAt: number;
-  exportVersion: 2;
-  exportSource: 'clarit-ngram-simulation-recorder';
 }
 
 function makeId(): string {

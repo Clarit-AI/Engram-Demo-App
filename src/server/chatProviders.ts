@@ -160,6 +160,24 @@ export function extractEngramMetadata(
       typeof data.continuationTokenCount === 'number'
         ? data.continuationTokenCount
         : undefined,
+    restoreLatencyMs:
+      typeof data.restoreLatencyMs === 'number'
+        ? data.restoreLatencyMs
+        : typeof data.restore_latency_ms === 'number'
+          ? data.restore_latency_ms
+          : undefined,
+    snapshotSizeBytes:
+      typeof data.snapshotSizeBytes === 'number'
+        ? data.snapshotSizeBytes
+        : typeof data.snapshot_size_bytes === 'number'
+          ? data.snapshot_size_bytes
+          : undefined,
+    snapshotSizeMb:
+      typeof data.snapshotSizeMb === 'number'
+        ? data.snapshotSizeMb
+        : typeof data.snapshot_size_mb === 'number'
+          ? data.snapshot_size_mb
+          : undefined,
   };
 }
 

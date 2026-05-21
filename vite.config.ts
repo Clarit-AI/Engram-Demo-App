@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { handleChatRequest } from './src/server/chatHandler'
+import { handleComparativeRecordingRequest } from './src/server/comparativeRecorder'
 import { handleSessionRequest } from './src/server/session'
 import type { ChatServerEnv } from './src/server/types'
 
@@ -135,6 +136,12 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use('/api/recording/export', async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleRecordingExportRequest(request, serverEnv);
+            await writeResponse(res, response);
+          });
+
+          server.middlewares.use('/api/recording/comparative', async (req, res) => {
+            const request = requestFromNode(req, await readBody(req));
+            const response = await handleComparativeRecordingRequest(request, serverEnv);
             await writeResponse(res, response);
           });
         },

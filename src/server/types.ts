@@ -34,6 +34,13 @@ export interface ChatServerEnv {
   ENGRAM_MODEL?: string;
   DEFAULT_STATELESS_MODEL?: string;
   DEFAULT_PROVIDER_MODE?: ProviderMode;
+  DIGITALOCEAN_MODEL_ACCESS_KEY?: string;
+  DIGITALOCEAN_TOKEN?: string;
+  DIGITALOCEAN_INFERENCE_BASE_URL?: string;
+  DIGITALOCEAN_INFERENCE_MODEL?: string;
+  COMPARATIVE_RECORDING_ENABLED?: string;
+  COMPARATIVE_RECORDING_MODEL?: string;
+  COMPARATIVE_RECORDING_RESTORE_MEASUREMENT?: 'provider-metadata' | 'explicit-restore';
   RATE_LIMIT_ENABLED?: string;
   RATE_LIMIT_DEBUG?: string;
   SESSION_DEBUG?: string;
@@ -94,6 +101,9 @@ export interface ChatProviderMetadata {
     snapshotId?: string;
     reusedTokenCount?: number;
     continuationTokenCount?: number;
+    restoreLatencyMs?: number;
+    snapshotSizeBytes?: number;
+    snapshotSizeMb?: number;
   };
 }
 

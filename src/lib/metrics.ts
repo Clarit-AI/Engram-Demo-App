@@ -11,6 +11,7 @@
  */
 
 import type { DemoMessage } from '../services/demoLibrary';
+import type { ComparativePlaybackData } from './comparativeRecording';
 import { buildStatelessPayload, stringifyPayload } from './buildPayload';
 
 /** Approximate GPT-BPE chars-per-token ratio. */
@@ -55,7 +56,17 @@ export function computeTurnMetrics(
   model: string,
   turn: number,
   costPerMTok: number = DEFAULT_COST_PER_MTOK,
+  comparative?: ComparativePlaybackData,
 ): TurnMetrics {
+  const recorded = comparative?.turns[turn - 1]?.stateless;
+  if (recorded) {
+    return {
+      reReadTokens: recorded.cumulativeTokens,
+      reReadPages: recorded.cumulativeTokens / TOKENS_PER_PAGE,
+      turnCostUsd: (recorded.cumulativeTokens / 1_000_000) * costPerMTok,
+    };
+  }
+
   const payload = buildStatelessPayload(messages, model, turn);
   const chars = stringifyPayload(payload).length;
   const tokens = estimateTokensFromChars(chars);
@@ -75,7 +86,19 @@ export function computeSessionMetrics(
   model: string,
   upToTurn: number,
   costPerMTok: number = DEFAULT_COST_PER_MTOK,
+  comparative?: ComparativePlaybackData,
 ): SessionMetrics {
+  if (comparative) {
+    const totalTokens = comparative.turns
+      .slice(0, upToTurn)
+      .reduce((sum, turn) => sum + turn.stateless.cumulativeTokens, 0);
+    return {
+      totalTokens,
+      totalCostUsd: (totalTokens / 1_000_000) * costPerMTok,
+      totalPages: totalTokens / TOKENS_PER_PAGE,
+    };
+  }
+
   let totalTokens = 0;
   for (let t = 1; t <= upToTurn; t++) {
     const m = computeTurnMetrics(messages, model, t, costPerMTok);
@@ -98,7 +121,17 @@ export function computeStatefulTurnMetrics(
   _model: string,
   turn: number,
   costPerMTok: number = DEFAULT_COST_PER_MTOK,
+  comparative?: ComparativePlaybackData,
 ): TurnMetrics {
+  const recorded = comparative?.turns[turn - 1]?.engram;
+  if (recorded) {
+    return {
+      reReadTokens: recorded.tokensProcessed,
+      reReadPages: recorded.tokensProcessed / TOKENS_PER_PAGE,
+      turnCostUsd: (recorded.tokensProcessed / 1_000_000) * costPerMTok,
+    };
+  }
+
   const convo = messages.filter((m) => m.role !== 'system');
   const userTurns = convo.filter((m) => m.role === 'user');
   const userContent = userTurns[turn - 1]?.content ?? '';
@@ -117,7 +150,19 @@ export function computeStatefulSessionMetrics(
   model: string,
   upToTurn: number,
   costPerMTok: number = DEFAULT_COST_PER_MTOK,
+  comparative?: ComparativePlaybackData,
 ): SessionMetrics {
+  if (comparative) {
+    const totalTokens = comparative.turns
+      .slice(0, upToTurn)
+      .reduce((sum, turn) => sum + turn.engram.tokensProcessed, 0);
+    return {
+      totalTokens,
+      totalCostUsd: (totalTokens / 1_000_000) * costPerMTok,
+      totalPages: totalTokens / TOKENS_PER_PAGE,
+    };
+  }
+
   let totalTokens = 0;
   for (let t = 1; t <= upToTurn; t++) {
     const m = computeStatefulTurnMetrics(messages, model, t, costPerMTok);

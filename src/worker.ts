@@ -20,7 +20,7 @@ export default {
       return handleSessionRequest(request, env);
     }
 
-    if (url.pathname === '/api/recording/export') {
+    if (url.pathname === '/api/recording/export' || url.pathname === '/api/recording/comparative') {
       return new Response(
         JSON.stringify({ error: 'Server recording export is unavailable in this runtime.' }),
         {

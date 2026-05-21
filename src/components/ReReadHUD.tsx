@@ -49,11 +49,11 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
     if (!activeDemo) return null;
     const clamp = Math.min(turn, activeDemo.turnCount);
     const turnM = isStateful
-      ? computeStatefulTurnMetrics(activeDemo.messages, activeDemo.model, clamp)
-      : computeTurnMetrics(activeDemo.messages, activeDemo.model, clamp);
+      ? computeStatefulTurnMetrics(activeDemo.messages, activeDemo.model, clamp, undefined, activeDemo.comparative)
+      : computeTurnMetrics(activeDemo.messages, activeDemo.model, clamp, undefined, activeDemo.comparative);
     const sessionM = isStateful
-      ? computeStatefulSessionMetrics(activeDemo.messages, activeDemo.model, clamp)
-      : computeSessionMetrics(activeDemo.messages, activeDemo.model, clamp);
+      ? computeStatefulSessionMetrics(activeDemo.messages, activeDemo.model, clamp, undefined, activeDemo.comparative)
+      : computeSessionMetrics(activeDemo.messages, activeDemo.model, clamp, undefined, activeDemo.comparative);
     return { ...turnM, session: sessionM };
   }, [activeDemo, isStateful, turn]);
 

@@ -45,7 +45,13 @@ export function MobileGuidedComparison() {
     const clamp = Math.min(turn, activeDemo.turnCount);
     return {
       label: 'Stateless',
-      tokens: computeTurnMetrics(activeDemo.messages, activeDemo.model, clamp).reReadTokens,
+      tokens: computeTurnMetrics(
+        activeDemo.messages,
+        activeDemo.model,
+        clamp,
+        undefined,
+        activeDemo.comparative,
+      ).reReadTokens,
     };
   }, [activeDemo, currentTurn, inferenceMode]);
 
