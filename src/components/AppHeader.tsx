@@ -17,6 +17,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
   const resetArc = useArcStore((s) => s.resetArc);
   const setPhase = useArcStore((s) => s.setPhase);
   const setAppMode = useArcStore((s) => s.setAppMode);
+  const setTurn = useArcStore((s) => s.setTurn);
   const phase = useArcStore((s) => s.phase);
   const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
   const setDebugHoldStateless = useArcStore((s) => s.setDebugHoldStateless);
@@ -32,6 +33,9 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
 
   const handleActuallyChat = () => {
     setAppMode('chat');
+    // Reset the demo's turn counter so the left pane doesn't inherit stale
+    // demo bundle cards and render ghost artifacts before any messages are sent.
+    setTurn(0);
   };
 
   return (
