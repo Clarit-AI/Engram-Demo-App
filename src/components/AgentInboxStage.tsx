@@ -206,7 +206,7 @@ function TurnExchange({
         />
       )}
       {response && response.visibleChars > 0 && (
-        <AssistantBubble response={response} active={active} />
+        <div data-response-visible-chars={response.visibleChars}><AssistantBubble response={response} active={active} /></div>
       )}
     </div>
   );

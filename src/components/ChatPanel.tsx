@@ -141,12 +141,13 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
   // Input is enabled only in chat mode and when not currently streaming.
   const inputDisabled =
     !isChat ||
+    phase === 'streaming' ||
     liveStatus === 'streaming-request' ||
     liveStatus === 'streaming-response' ||
     liveStatus === 'awaiting';
 
   const inputPlaceholder = isChat
-    ? liveStatus === 'streaming-response'
+    ? (liveStatus === 'streaming-response' || phase === 'streaming')
       ? 'streaming…'
       : 'Message the model…'
     : 'Chat unlocks after the simulation…';
@@ -283,7 +284,9 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
           <div className="flex flex-col gap-3 py-2">
             {(() => {
               const nodes: ReactNode[] = [];
-              const turnsToShow = Math.min(currentTurn, turnPairs.length);
+              const turnsToShow = isChat
+                ? turnPairs.length
+                : Math.min(currentTurn, turnPairs.length);
               for (let i = 0; i < turnsToShow; i++) {
                 const pair = turnPairs[i];
                 const turnNum = i + 1;
@@ -398,7 +401,7 @@ function LiveProviderChips({
         Live · {requestShape}
       </span>
 
-      {metadata?.engram?.compatibilityResult && (
+      {inferenceMode === 'stateful' && (
         <span
           className="hidden rounded-full min-h-9 items-center px-3 text-[9px] font-mono uppercase tracking-[0.16em] sm:inline-flex"
           style={{
@@ -407,7 +410,7 @@ function LiveProviderChips({
             border: '1px solid rgba(104,250,221,0.20)',
           }}
         >
-          {metadata.engram.simulated ? 'Simulated' : metadata.engram.compatibilityResult}
+          Simulated
         </span>
       )}
     </div>
@@ -431,8 +434,8 @@ function ConversationModeButton({
       role="radio"
       aria-checked={active}
       onClick={onClick}
-      className="relative rounded-full px-3 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] transition-colors"
-      style={{ color: active ? (stateful ? 'var(--secondary)' : 'var(--primary)') : 'var(--text-muted)' }}
+      className="relative rounded-full px-3 py-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em] transition-colors"
+      style={{ color: active ? (stateful ? '#005C4F' : '#004B78') : '#4A5668' }}
     >
       {active && (
         <motion.span
