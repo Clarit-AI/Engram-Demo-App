@@ -15,7 +15,7 @@ export function SessionDebugChip() {
   if (!shouldShowSessionDebug()) return null;
 
   const label = session
-    ? `${session.idPreview} · ${rateLimit?.requestsThisMinute ?? session.requestsThisMinute}/${rateLimit?.maxRequestsPerMinute ?? '-'} req · ${rateLimit?.globalInFlight ?? session.inFlight} live`
+    ? `${session.idPreview} · ${rateLimit?.requestsThisMinute ?? session.requestsThisMinute}/${rateLimit?.maxRequestsPerMinute ?? '-'} req · ${rateLimit?.globalInFlight ?? session.inFlight} live · q:${rateLimit?.queueDepth ?? 0}`
     : status === 'error'
       ? 'session error'
       : 'session pending';
