@@ -19,6 +19,7 @@ export interface ChatRequestBody {
   model?: string;
   conversationId?: string;
   turnNumber?: number;
+  codeType?: string;
 }
 
 export interface ChatServerEnv {
@@ -54,8 +55,19 @@ export interface ChatServerEnv {
   MAX_REQUESTS_PER_SESSION_PER_MINUTE?: string;
   MAX_REQUESTS_PER_IP_PER_MINUTE?: string;
   MAX_INPUT_TOKENS_PER_REQUEST?: string;
+  SESSION_QUEUE_DEPTH?: string;
+  SESSION_QUEUE_TIMEOUT_MS?: string;
+  INVITE_CODES?: string;
+  LIVE_SCHEDULE_ADHOC_WINDOWS?: string;
   RECORDING_EXPORT_SERVER_ENABLED?: string;
   RECORDING_EXPORT_DIR?: string;
+  OVH_APPLICATION_KEY?: string;
+  OVH_APPLICATION_SECRET?: string;
+  OVH_CONSUMER_KEY?: string;
+  OVH_ENDPOINT?: string;
+  OVH_INSTANCE_IMAGE?: string;
+  OVH_INSTANCE_REGION?: string;
+  ADMIN_TOKEN?: string;
 }
 
 export interface SessionMetadata {
@@ -79,6 +91,8 @@ export interface RateLimitMetadata {
   maxGlobalConcurrent: number;
   estimatedInputTokens?: number;
   providerMode?: ProviderMode | LegacyProviderMode;
+  queueDepth?: number;
+  provisionState?: string;
 }
 
 export interface ChatProviderMetadata {

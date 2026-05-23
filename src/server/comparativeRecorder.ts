@@ -2,6 +2,7 @@ import { createClarit } from '@clarit.ai/vercel-ai-provider';
 import type { ClaritSnapshotClient, SnapshotMetadata } from '@clarit.ai/vercel-ai-provider/snapshots';
 import { streamText } from 'ai';
 import { extractEngramMetadata } from './chatProviders';
+import { getRestoreMutex } from './session';
 import type {
   ChatMessageInput,
   ChatProviderMetadata,
@@ -167,18 +168,24 @@ async function measureRestoreLatency(
   conversationId: string,
   turnNumber: number,
 ): Promise<number> {
-  const started = performance.now();
-  const result = await snapshots.restore({
-    conversation_id: conversationId,
-    turn_number: turnNumber,
-  });
-  const latency = elapsedMs(started);
+  const restoreMutex = getRestoreMutex();
+  await restoreMutex.acquire();
+  try {
+    const started = performance.now();
+    const result = await snapshots.restore({
+      conversation_id: conversationId,
+      turn_number: turnNumber,
+    });
+    const latency = elapsedMs(started);
 
-  if (!result.success) {
-    throw new Error(result.message || `Engram restore failed for turn ${turnNumber}.`);
+    if (!result.success) {
+      throw new Error(result.message || `Engram restore failed for turn ${turnNumber}.`);
+    }
+
+    return latency;
+  } finally {
+    restoreMutex.release();
   }
-
-  return latency;
 }
 
 function digitalOceanKey(env: ChatServerEnv): string {

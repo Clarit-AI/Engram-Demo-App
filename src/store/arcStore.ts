@@ -30,6 +30,7 @@ function hasConsentCookie(): boolean {
 
 export type AppMode = 'demo' | 'chat' | null;
 export type InferenceMode = 'stateless' | 'stateful';
+export type AvailabilityState = 'offline' | 'open' | 'code-required';
 export type ArcPhase =
   | 'idle'        // pre-landing, before user chooses demo/chat
   | 'intro'       // landing + setup beat
@@ -85,6 +86,10 @@ interface ArcState {
   consented: boolean;
   setConsented: (consented: boolean) => void;
 
+  // --- Availability state ---
+  availabilityState: AvailabilityState;
+  setAvailabilityState: (state: AvailabilityState) => void;
+
   // --- Local debug controls ---
   debugHoldStateless: boolean;
 
@@ -123,6 +128,9 @@ export const useArcStore = create<ArcState>((set, get) => ({
 
   consented: hasConsentCookie(),
   setConsented: (consented) => set({ consented }),
+
+  availabilityState: 'offline',
+  setAvailabilityState: (availabilityState) => set({ availabilityState }),
 
   debugHoldStateless: true,
 

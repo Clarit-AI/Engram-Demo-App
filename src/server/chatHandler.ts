@@ -135,7 +135,7 @@ export async function handleChatRequest(
   }
 
   const providerMode = normalizeProviderMode(body.mode, getDefaultProviderMode(env));
-  const capacity = reserveChatCapacity(request, env, body, messages);
+  const capacity = await reserveChatCapacity(request, env, body, messages);
   if (!capacity.ok) {
     return jsonResponseWithHeaders(capacity.body, capacity.status, {
       ...capacity.headers,

@@ -5,6 +5,18 @@ import type {
   RateLimitMetadata,
   SessionMetadata,
 } from './types';
+import type { CodeType } from './codes';
+import {
+  dbEnqueue,
+  dbDequeue,
+  dbRemoveFromQueue,
+  dbQueueCount,
+} from './db';
+import {
+  getProvisionState,
+  provisionInstance,
+} from './ovhProvision';
+import { isWindowActive } from './schedule';
 
 type RateLimitDecision =
   | {
@@ -37,6 +49,7 @@ interface SessionRecord {
   inFlight: number;
   requestTimestamps: number[];
   estimatedTokens: number;
+  codeType: string;
 }
 
 interface IpBucket {
@@ -55,10 +68,85 @@ interface RateLimitConfig {
   maxRequestsPerSessionPerMinute: number;
   maxRequestsPerIpPerMinute: number;
   maxInputTokensPerRequest: number;
+  queueDepth: number;
+  queueTimeoutMs: number;
+}
+
+interface Waiter {
+  resolve: (session: SessionRecord) => void;
+  reject: (reason: unknown) => void;
+  timeoutHandle: ReturnType<typeof setTimeout>;
+  enqueuedAt: number;
+  codeType: string;
+}
+
+class RestoreMutex {
+  private held = false;
+  private waiters: Array<(wasTimeout: boolean) => void> = [];
+  private holdCount = 0;
+  private maxConcurrent: number;
+
+  constructor(maxConcurrent = 1) {
+    this.maxConcurrent = maxConcurrent;
+  }
+
+  async acquire(timeoutMs?: number): Promise<boolean> {
+    if (this.holdCount < this.maxConcurrent) {
+      this.holdCount++;
+      this.held = true;
+      return true;
+    }
+
+    return new Promise<boolean>((resolve) => {
+      const wrapper = (wasTimeout: boolean) => {
+        if (!wasTimeout) {
+          this.holdCount++;
+          this.held = true;
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      };
+
+      if (timeoutMs !== undefined) {
+        setTimeout(() => {
+          const idx = this.waiters.indexOf(wrapper);
+          if (idx !== -1) this.waiters.splice(idx, 1);
+          wrapper(true);
+        }, timeoutMs);
+      }
+
+      this.waiters.push(wrapper);
+    });
+  }
+
+  release(): void {
+    this.holdCount = Math.max(0, this.holdCount - 1);
+    if (this.holdCount === 0) this.held = false;
+    const next = this.waiters.shift();
+    if (next) next(false);
+  }
+
+  releaseAll(): void {
+    this.waiters.forEach((w) => w(true));
+    this.waiters = [];
+    this.holdCount = 0;
+    this.held = false;
+  }
+
+  isHeld(): boolean {
+    return this.held;
+  }
+
+  getHoldCount(): number {
+    return this.holdCount;
+  }
 }
 
 const sessions = new Map<string, SessionRecord>();
 const ipBuckets = new Map<string, IpBucket>();
+const admissionQueue: Map<string, Waiter> = new Map();
+const restoreMutex = new RestoreMutex();
 
 function parseBoolean(value: unknown, fallback: boolean): boolean {
   if (typeof value !== 'string') return fallback;
@@ -79,7 +167,7 @@ export function getRateLimitConfig(env: ChatServerEnv): RateLimitConfig {
     cookieName: env.SESSION_COOKIE_NAME || 'ngram_demo_session',
     sessionTtlSeconds: parsePositiveInt(env.SESSION_TTL_SECONDS, 60 * 60),
     heartbeatTtlSeconds: parsePositiveInt(env.HEARTBEAT_TTL_SECONDS, 90),
-    maxActiveSessions: parsePositiveInt(env.MAX_ACTIVE_SESSIONS, 24),
+    maxActiveSessions: parsePositiveInt(env.MAX_ACTIVE_SESSIONS, 5),
     maxGlobalConcurrentGenerations: parsePositiveInt(
       env.MAX_GLOBAL_CONCURRENT_GENERATIONS,
       2,
@@ -94,6 +182,8 @@ export function getRateLimitConfig(env: ChatServerEnv): RateLimitConfig {
     ),
     maxRequestsPerIpPerMinute: parsePositiveInt(env.MAX_REQUESTS_PER_IP_PER_MINUTE, 18),
     maxInputTokensPerRequest: parsePositiveInt(env.MAX_INPUT_TOKENS_PER_REQUEST, 12_000),
+    queueDepth: parsePositiveInt(env.SESSION_QUEUE_DEPTH, 5),
+    queueTimeoutMs: parsePositiveInt(env.SESSION_QUEUE_TIMEOUT_MS, 5_000),
   };
 }
 
@@ -206,6 +296,72 @@ function globalInFlight(): number {
   return count;
 }
 
+export function getRestoreMutex(): RestoreMutex {
+  return restoreMutex;
+}
+
+export function getQueueDepth(): number {
+  return dbQueueCount();
+}
+
+function dequeueNext(config: RateLimitConfig): void {
+  const now = Date.now();
+  const row = dbDequeue(now);
+  if (!row) return;
+
+  const waiter = admissionQueue.get(row.sessionId);
+  if (!waiter) return;
+
+  admissionQueue.delete(row.sessionId);
+  clearTimeout(waiter.timeoutHandle);
+
+  const active = activeSessionCount(now, config);
+  if (active < config.maxActiveSessions || sessions.has(row.sessionId)) {
+    waiter.resolve(sessions.get(row.sessionId) || createTransientSession(row.sessionId));
+  } else {
+    dequeueNext(config);
+  }
+}
+
+function createTransientSession(id: string): SessionRecord {
+  const now = Date.now();
+  return {
+    id,
+    createdAt: now,
+    lastSeen: now,
+    expiresAt: now + 60_000,
+    ip: 'queued',
+    userAgent: 'queued',
+    inFlight: 0,
+    requestTimestamps: [],
+    estimatedTokens: 0,
+    codeType: '',
+  };
+}
+
+function enqueueWaiter(
+  sessionId: string,
+  config: RateLimitConfig,
+  codeType: CodeType = 'public',
+): Promise<SessionRecord> {
+  return new Promise((resolve, reject) => {
+    if (dbQueueCount() >= config.queueDepth) {
+      reject(new Error('queue_full'));
+      return;
+    }
+    const enqueuedAt = Date.now();
+    const timeoutAt = enqueuedAt + config.queueTimeoutMs;
+    const timeoutHandle = setTimeout(() => {
+      admissionQueue.delete(sessionId);
+      dbRemoveFromQueue(sessionId);
+      reject(new Error('queue_timeout'));
+    }, config.queueTimeoutMs);
+
+    dbEnqueue({ sessionId, codeType, enqueuedAt, timeoutAt });
+    admissionQueue.set(sessionId, { resolve, reject, timeoutHandle, enqueuedAt, codeType });
+  });
+}
+
 function toSessionMetadata(session: SessionRecord, now: number): SessionMetadata {
   return {
     idPreview: session.id.slice(0, 8),
@@ -223,6 +379,7 @@ function buildRateLimitMetadata(
   config: RateLimitConfig,
   now: number,
 ): RateLimitMetadata {
+  const provState = getProvisionState();
   return {
     enabled: config.enabled,
     activeSessions: activeSessionCount(now, config),
@@ -232,6 +389,8 @@ function buildRateLimitMetadata(
     maxRequestsPerMinute: config.maxRequestsPerSessionPerMinute,
     maxSessionConcurrent: config.maxSessionConcurrentGenerations,
     maxGlobalConcurrent: config.maxGlobalConcurrentGenerations,
+    queueDepth: dbQueueCount(),
+    provisionState: provState.state,
   };
 }
 
@@ -258,6 +417,7 @@ export function ensureSession(
     inFlight: 0,
     requestTimestamps: [],
     estimatedTokens: 0,
+    codeType: '',
   };
 
   session.lastSeen = now;
@@ -274,12 +434,12 @@ export function ensureSession(
   };
 }
 
-export function reserveChatCapacity(
+export async function reserveChatCapacity(
   request: Request,
   env: ChatServerEnv,
   body: ChatRequestBody,
   messages: ChatMessageInput[],
-): RateLimitDecision {
+): Promise<RateLimitDecision> {
   const now = Date.now();
   const { session, setCookie, config, isNew } = ensureSession(request, env);
   const ip = getClientIp(request);
@@ -329,11 +489,39 @@ export function reserveChatCapacity(
     };
   }
 
-  if (isNew && activeSessionCount(now, config) > config.maxActiveSessions) {
-    return reject(
-      'active_sessions_exceeded',
-      'The live simulation is at its active session limit. Please try again shortly.',
-    );
+  // When at/over session cap, enqueue and wait for a slot instead of fail-fast
+  // Subtract 1 for the candidate since it was already added to sessions by ensureSession
+  if (isNew && activeSessionCount(now, config) - 1 >= config.maxActiveSessions) {
+    // OVH provisioning hook: if a live window is open and no instance is running, provision one
+    if (isWindowActive(new Date())) {
+      const provState = getProvisionState();
+      if (provState.state === 'none') {
+        provisionInstance(env).catch((err) => {
+          console.error('OVH provisioning failed:', err);
+        });
+      }
+    }
+
+    if (dbQueueCount() >= config.queueDepth) {
+      return reject(
+        'queue_full',
+        'The wait queue is full. Please try again shortly.',
+        Math.ceil(config.queueTimeoutMs / 1000),
+      );
+    }
+    const codeType: CodeType = 'public';
+    try {
+      await enqueueWaiter(session.id, config, codeType);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'queue_timeout') {
+        return reject(
+          'active_sessions_exceeded',
+          'The live simulation is at its active session limit. Please try again shortly.',
+          Math.ceil(config.queueTimeoutMs / 1000),
+        );
+      }
+      throw e;
+    }
   }
 
   if (estimatedInputTokens > config.maxInputTokensPerRequest) {
@@ -382,6 +570,7 @@ export function reserveChatCapacity(
     ...buildRateLimitMetadata(session, config, now),
     estimatedInputTokens,
     providerMode: body.mode,
+    queueDepth: dbQueueCount(),
   };
 
   return {
@@ -391,7 +580,10 @@ export function reserveChatCapacity(
     headers,
     release: () => {
       session.inFlight = Math.max(0, session.inFlight - 1);
-      session.lastSeen = Date.now();
+      // Delete the session immediately so activeSessionCount excludes it
+      sessions.delete(session.id);
+      // Admit next waiter if any are queued
+      dequeueNext(config);
     },
   };
 }
