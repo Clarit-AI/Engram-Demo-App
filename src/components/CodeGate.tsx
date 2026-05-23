@@ -1,9 +1,14 @@
 import { memo, useState } from 'react';
 
-export const CodeGate = memo(function CodeGate() {
+export interface CodeGateProps {
+  onSuccess?: () => void;
+}
+
+export const CodeGate = memo(function CodeGate({ onSuccess }: CodeGateProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +26,8 @@ export const CodeGate = memo(function CodeGate() {
         setError(data.error ?? 'Invalid code.');
       } else {
         setCode('');
+        setSuccess(true);
+        onSuccess?.();
       }
     } catch {
       setError('Network error. Please try again.');
@@ -58,9 +65,12 @@ export const CodeGate = memo(function CodeGate() {
           {error && (
             <p className="text-center font-sans text-xs text-error">{error}</p>
           )}
+          {success && (
+            <p className="text-center font-sans text-xs text-[#00c864]">Code accepted. Unlocking…</p>
+          )}
           <button
             type="submit"
-            disabled={loading || !code.trim()}
+            disabled={loading || !code.trim() || success}
             className="sig-gradient w-full rounded-full py-3 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
           >
             {loading ? 'Validating…' : 'Unlock live demo'}

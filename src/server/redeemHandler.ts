@@ -1,4 +1,4 @@
-import { parseInviteCodes, redeemCode } from './codes';
+import { parseInviteCodes, redeemCode, validateCode } from './codes';
 import type { ChatServerEnv } from './types';
 
 let initialized = false;
@@ -65,6 +65,20 @@ export async function handleScheduleAdminRequest(
   env: ChatServerEnv,
 ): Promise<Response> {
   ensureInitialized(env);
+
+  // Auth check: Bearer token or X-Invite-Code header
+  const authHeader = request.headers.get('authorization') ?? '';
+  const inviteHeader = request.headers.get('x-invite-code') ?? '';
+  const adminToken = (env as { ADMIN_TOKEN?: string }).ADMIN_TOKEN;
+  const validToken = adminToken && authHeader === `Bearer ${adminToken}`;
+  const validCode = inviteHeader.trim() ? validateCode(inviteHeader.trim()) !== null : false;
+  if (!validToken && !validCode) {
+    return new Response(JSON.stringify({ error: 'Unauthorized.' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    });
+  }
+
   const url = new URL(request.url);
 
   if (request.method === 'GET') {

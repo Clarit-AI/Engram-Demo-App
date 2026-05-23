@@ -67,6 +67,7 @@ export interface ChatServerEnv {
   OVH_ENDPOINT?: string;
   OVH_INSTANCE_IMAGE?: string;
   OVH_INSTANCE_REGION?: string;
+  ADMIN_TOKEN?: string;
 }
 
 export interface SessionMetadata {

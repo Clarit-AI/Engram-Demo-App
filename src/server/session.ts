@@ -108,20 +108,15 @@ class RestoreMutex {
         }
       };
 
-      const timeout = timeoutMs !== undefined
-        ? setTimeout(() => {
-            const idx = this.waiters.indexOf(wrapper);
-            if (idx !== -1) this.waiters.splice(idx, 1);
-            wrapper(true);
-          }, timeoutMs)
-        : null;
-
-      if (timeout) {
-        const trackedWrapper = wrapper;
-        this.waiters.push(trackedWrapper);
-      } else {
-        this.waiters.push(wrapper);
+      if (timeoutMs !== undefined) {
+        setTimeout(() => {
+          const idx = this.waiters.indexOf(wrapper);
+          if (idx !== -1) this.waiters.splice(idx, 1);
+          wrapper(true);
+        }, timeoutMs);
       }
+
+      this.waiters.push(wrapper);
     });
   }
 
@@ -495,7 +490,8 @@ export async function reserveChatCapacity(
   }
 
   // When at/over session cap, enqueue and wait for a slot instead of fail-fast
-  if (isNew && activeSessionCount(now, config) >= config.maxActiveSessions) {
+  // Subtract 1 for the candidate since it was already added to sessions by ensureSession
+  if (isNew && activeSessionCount(now, config) - 1 >= config.maxActiveSessions) {
     // OVH provisioning hook: if a live window is open and no instance is running, provision one
     if (isWindowActive(new Date())) {
       const provState = getProvisionState();
@@ -584,9 +580,8 @@ export async function reserveChatCapacity(
     headers,
     release: () => {
       session.inFlight = Math.max(0, session.inFlight - 1);
-      // Expire the session slot immediately so activeSessionCount releases the slot
-      session.expiresAt = Date.now();
-      session.lastSeen = Date.now();
+      // Delete the session immediately so activeSessionCount excludes it
+      sessions.delete(session.id);
       // Admit next waiter if any are queued
       dequeueNext(config);
     },

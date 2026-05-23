@@ -15,14 +15,16 @@ export function getDb(): DbInstance {
 }
 
 export function initDb(dbPath?: string): void {
-  const path = dbPath ?? './data/sessions.db';
-  const dir = path.slice(0, path.lastIndexOf('/'));
-  if (dir) {
+  const p = dbPath ?? './data/sessions.db';
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require('node:path');
+  const dir = path.dirname(p);
+  if (dir && dir !== '.') {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { mkdirSync } = require('node:fs');
     mkdirSync(dir, { recursive: true });
   }
-  _db = new Database(path);
+  _db = new Database(p);
   _db.pragma('journal_mode = WAL');
   _db.pragma('foreign_keys = ON');
 
@@ -143,10 +145,10 @@ export function dbIncrementRedemption(codeValue: string, maxUses?: number): bool
   const db = getDb();
   if (maxUses !== undefined) {
     const result = db.prepare(`
-      UPDATE code_redemptions
-         SET current_uses = current_uses + 1
-       WHERE code_value = ?
-         AND (current_uses < ?)
+      INSERT INTO code_redemptions (code_value, current_uses) VALUES (?, 1)
+      ON CONFLICT(code_value) DO UPDATE
+        SET current_uses = current_uses + 1
+        WHERE current_uses < ?
     `).run(codeValue, maxUses);
     return result.changes > 0;
   }
