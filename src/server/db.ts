@@ -16,6 +16,12 @@ export function getDb(): DbInstance {
 
 export function initDb(dbPath?: string): void {
   const path = dbPath ?? './data/sessions.db';
+  const dir = path.slice(0, path.lastIndexOf('/'));
+  if (dir) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { mkdirSync } = require('node:fs');
+    mkdirSync(dir, { recursive: true });
+  }
   _db = new Database(path);
   _db.pragma('journal_mode = WAL');
   _db.pragma('foreign_keys = ON');
@@ -86,16 +92,17 @@ export interface DequeuedEntry {
 export function dbDequeue(timeoutBefore: number): DequeuedEntry | null {
   const db = getDb();
   const row = db.prepare(`
-    SELECT session_id, code_type, enqueued_at
-      FROM queue_entries
-     WHERE timeout_at > ?
-     ORDER BY priority_rank ASC, enqueued_at ASC
-     LIMIT 1
+    DELETE FROM queue_entries
+     WHERE rowid = (
+       SELECT rowid FROM queue_entries
+        WHERE timeout_at > ?
+        ORDER BY priority_rank ASC, enqueued_at ASC
+        LIMIT 1
+     )
+     RETURNING session_id, code_type, enqueued_at
   `).get(timeoutBefore) as { session_id: string; code_type: string; enqueued_at: number } | undefined;
 
   if (!row) return null;
-
-  db.prepare('DELETE FROM queue_entries WHERE session_id = ?').run(row.session_id);
 
   return {
     sessionId: row.session_id,
@@ -132,12 +139,22 @@ export function dbGetRedemptionCount(codeValue: string): number {
   return row?.current_uses ?? 0;
 }
 
-export function dbIncrementRedemption(codeValue: string): void {
+export function dbIncrementRedemption(codeValue: string, maxUses?: number): boolean {
   const db = getDb();
+  if (maxUses !== undefined) {
+    const result = db.prepare(`
+      UPDATE code_redemptions
+         SET current_uses = current_uses + 1
+       WHERE code_value = ?
+         AND (current_uses < ?)
+    `).run(codeValue, maxUses);
+    return result.changes > 0;
+  }
   db.prepare(`
     INSERT INTO code_redemptions (code_value, current_uses) VALUES (?, 1)
     ON CONFLICT(code_value) DO UPDATE SET current_uses = current_uses + 1
   `).run(codeValue);
+  return true;
 }
 
 // ─── Provision state operations ─────────────────────────────────────────────

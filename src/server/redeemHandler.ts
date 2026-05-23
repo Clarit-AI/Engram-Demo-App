@@ -86,11 +86,25 @@ export async function handleScheduleAdminRequest(
         headers: { 'content-type': 'application/json; charset=utf-8' },
       });
     }
+    const startMs = Date.parse(String(body.start));
+    const endMs = Date.parse(String(body.end));
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
+      return new Response(JSON.stringify({ error: 'start and end must be valid date values.' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+    if (endMs <= startMs) {
+      return new Response(JSON.stringify({ error: 'end must be after start.' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
     const { addScheduleWindow } = await import('./schedule-store');
     const window = addScheduleWindow({
       label: body.label ?? 'Ad-hoc window',
-      start: new Date(body.start ?? Date.now()),
-      end: new Date(body.end ?? Date.now() + 3600_000),
+      start: new Date(startMs),
+      end: new Date(endMs),
       policy: body.policy === 'code-required' ? 'code-required' : 'open',
     });
     return new Response(JSON.stringify({ window }), {

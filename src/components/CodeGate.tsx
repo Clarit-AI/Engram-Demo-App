@@ -42,7 +42,11 @@ export const CodeGate = memo(function CodeGate() {
           This live window is reserved for invite holders. Enter your code to continue.
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
+          <label htmlFor="code-gate-input" className="sr-only">
+            Invite code
+          </label>
           <input
+            id="code-gate-input"
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}

@@ -81,10 +81,10 @@ export function redeemCode(value: string): RedeemResult {
   if (code.expiresAt && code.expiresAt <= new Date()) {
     return { success: false, error: 'This code has expired.' };
   }
-  if (code.maxUses !== undefined && code.currentUses >= code.maxUses) {
+  const incremented = dbIncrementRedemption(value, code.maxUses);
+  if (!incremented) {
     return { success: false, error: 'This code has reached its maximum uses.' };
   }
-  dbIncrementRedemption(value);
-  code.currentUses += 1;
+  code.currentUses = dbGetRedemptionCount(value);
   return { success: true, code };
 }

@@ -98,22 +98,30 @@ class RestoreMutex {
     }
 
     return new Promise<boolean>((resolve) => {
-      const timeout = timeoutMs !== undefined
-        ? setTimeout(() => {
-            const idx = this.waiters.indexOf(resolve as (wasTimeout: boolean) => void);
-            if (idx !== -1) this.waiters.splice(idx, 1);
-            resolve(false);
-          }, timeoutMs)
-        : null;
-
-      this.waiters.push((wasTimeout) => {
-        if (timeout) clearTimeout(timeout);
+      const wrapper = (wasTimeout: boolean) => {
         if (!wasTimeout) {
           this.holdCount++;
           this.held = true;
           resolve(true);
+        } else {
+          resolve(false);
         }
-      });
+      };
+
+      const timeout = timeoutMs !== undefined
+        ? setTimeout(() => {
+            const idx = this.waiters.indexOf(wrapper);
+            if (idx !== -1) this.waiters.splice(idx, 1);
+            wrapper(true);
+          }, timeoutMs)
+        : null;
+
+      if (timeout) {
+        const trackedWrapper = wrapper;
+        this.waiters.push(trackedWrapper);
+      } else {
+        this.waiters.push(wrapper);
+      }
     });
   }
 
@@ -505,7 +513,7 @@ export async function reserveChatCapacity(
         Math.ceil(config.queueTimeoutMs / 1000),
       );
     }
-    const codeType: CodeType = (body.codeType as CodeType) || 'public';
+    const codeType: CodeType = 'public';
     try {
       await enqueueWaiter(session.id, config, codeType);
     } catch (e) {
@@ -576,6 +584,8 @@ export async function reserveChatCapacity(
     headers,
     release: () => {
       session.inFlight = Math.max(0, session.inFlight - 1);
+      // Expire the session slot immediately so activeSessionCount releases the slot
+      session.expiresAt = Date.now();
       session.lastSeen = Date.now();
       // Admit next waiter if any are queued
       dequeueNext(config);

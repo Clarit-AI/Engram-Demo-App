@@ -129,7 +129,8 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
           <button
             type="button"
             onClick={handleActuallyChat}
-            className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors"
+            disabled={availabilityState === 'offline'}
+            className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors disabled:opacity-40"
             style={{
               background: appMode === 'chat' ? 'rgba(0,163,255,0.12)' : 'var(--surface-container)',
               border: appMode === 'chat' ? '1px solid rgba(0,163,255,0.26)' : '1px solid rgba(25,28,30,0.10)',

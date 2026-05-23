@@ -99,18 +99,20 @@ export async function provisionInstance(env: ChatServerEnv): Promise<string> {
 
 export async function terminateInstance(env: ChatServerEnv): Promise<void> {
   if (currentState.state === 'none') return;
-  if (!currentState.instanceId) {
+  const savedInstanceId = currentState.instanceId;
+  const savedEndpoint = currentState.endpoint;
+  if (!savedInstanceId) {
     currentState = { state: 'none' };
     dbUpsertProvisionState('none');
     return;
   }
 
   currentState = { state: 'terminating' };
-  dbUpsertProvisionState('terminating', currentState.endpoint, currentState.instanceId);
+  dbUpsertProvisionState('terminating', savedEndpoint, savedInstanceId);
 
   try {
     const client = createOvhClient(env);
-    await client.request('DELETE', `/ai-training/instances/${currentState.instanceId}`);
+    await client.request('DELETE', `/ai-training/instances/${savedInstanceId}`);
   } catch {
     // Best-effort deletion
   } finally {
