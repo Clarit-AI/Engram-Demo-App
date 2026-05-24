@@ -74,7 +74,7 @@ interface ArcState {
   phase: ArcPhase;
   currentTurn: number;      // 0-indexed; 0 means "no turns have played yet"
   totalTurns: number;       // from activeDemo, capped
-  turnsCap: number;         // caps arc at this many turns (default 8)
+  turnsCap: number;         // caps turn-based visualizations and demo playback
 
   // --- Cross-pane stream sync ---
   // The left-pane stream is the SINGLE source of truth. Chat pane mirrors
@@ -125,7 +125,7 @@ export const useArcStore = create<ArcState>((set, get) => ({
   phase: 'idle',
   currentTurn: 0,
   totalTurns: 0,
-  turnsCap: 8,
+  turnsCap: 20,
 
   streamedChars: 0,
   responseBoundary: Number.MAX_SAFE_INTEGER,

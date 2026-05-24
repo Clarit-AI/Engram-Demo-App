@@ -65,7 +65,7 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
           className="glass-chip-dark rounded-2xl px-4 py-3 text-[11px] font-mono uppercase tracking-[0.14em] ambient-shadow-dark"
           style={{ color: 'var(--on-surface-dark-faint)' }}
         >
-          booting…
+          awaiting input
         </div>
       </div>
     );

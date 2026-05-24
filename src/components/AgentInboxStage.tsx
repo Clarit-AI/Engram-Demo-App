@@ -116,7 +116,7 @@ export const AgentInboxStage = memo(function AgentInboxStage({
   if (!bundle) {
     return (
       <div className="relative flex h-full items-center justify-center overflow-hidden rounded-[1.75rem] bg-[#0d1117] text-[11px] font-mono uppercase tracking-[0.2em] text-on-surface-dark-faint">
-        Waiting for first request...
+        Awaiting input
       </div>
     );
   }

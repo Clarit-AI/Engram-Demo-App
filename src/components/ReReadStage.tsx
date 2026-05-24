@@ -28,7 +28,7 @@ import {
   buildStatefulAgentRequestBundle,
   buildStatelessAgentRequestBundle,
 } from '../lib/agentRequestBundle';
-import type { AppMode } from '../store/arcStore';
+import type { AppMode, InferenceMode } from '../store/arcStore';
 
 /**
  * Streaming pacing configuration.
@@ -539,9 +539,9 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
 
       {/* Simulated Disclosure Banner */}
       <SimulatedDisclosure
-        visible={inferenceMode === 'stateful'}
         mobile={mobile}
         appMode={appMode}
+        inferenceMode={inferenceMode}
         recordingMode={activeDemo?.recordingMode}
       />
 
@@ -552,32 +552,18 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
 }
 
 function SimulatedDisclosure({
-  visible,
   mobile,
   appMode,
+  inferenceMode,
   recordingMode,
 }: {
-  visible: boolean;
   mobile?: boolean;
   appMode: AppMode;
+  inferenceMode: InferenceMode;
   recordingMode?: 'stateful' | 'stateless';
 }) {
-  if (!visible) return null;
-
-  const isLive = appMode === 'chat';
-  const isStatefulRecording = recordingMode === 'stateful';
-
-  const label = isLive
-    ? 'Simulated Environment'
-    : isStatefulRecording
-      ? 'Recorded Session'
-      : 'Pre-recorded Simulated Session';
-
-  const subtext = isLive
-    ? 'The Engram backend is currently offline. This view simulates how the system retains context without transmitting the full history.'
-    : isStatefulRecording
-      ? 'This is a real Engram session previously recorded for demonstrative purposes.'
-      : 'This session was recorded statelessly and then reprocessed to emulate a stateful interaction.';
+  const copy = getDisclosureCopy({ appMode, inferenceMode, recordingMode });
+  if (!copy) return null;
 
   return (
     <div className={mobile ? 'absolute bottom-[3.5rem] left-3 right-3 z-30 flex justify-center pointer-events-none' : 'absolute bottom-[4.5rem] left-8 right-8 z-30 flex justify-center pointer-events-none'}>
@@ -592,13 +578,66 @@ function SimulatedDisclosure({
         <div className="flex items-center gap-2">
           <span className="flex h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: 'var(--secondary-container)' }} />
           <span className="font-mono text-[9px] uppercase font-bold tracking-[0.2em]" style={{ color: 'var(--secondary-container)' }}>
-            {label}
+            {copy.label}
           </span>
         </div>
         <p className="text-[11px] leading-relaxed opacity-90 font-sans" style={{ color: 'var(--on-surface-dark)' }}>
-          {subtext}
+          {copy.subtext}
         </p>
       </div>
     </div>
   );
+}
+
+type DisclosureCopy = {
+  label: string;
+  subtext: string;
+};
+
+function getDisclosureCopy({
+  appMode,
+  inferenceMode,
+  recordingMode,
+}: {
+  appMode: AppMode;
+  inferenceMode: InferenceMode;
+  recordingMode?: 'stateful' | 'stateless';
+}): DisclosureCopy | null {
+  if (appMode === 'chat') {
+    if (inferenceMode !== 'stateful') return null;
+    return {
+      label: 'Simulated Environment',
+      subtext: 'The Engram backend is currently offline. This view simulates how the system retains context without transmitting the full history.',
+    };
+  }
+
+  if (appMode !== 'demo') return null;
+
+  const recordedAs = recordingMode ?? 'stateless';
+
+  if (recordedAs === 'stateful') {
+    if (inferenceMode === 'stateful') {
+      return {
+        label: 'Recorded Engram Session',
+        subtext: 'This is a real Engram session previously recorded for demonstrative comparison.',
+      };
+    }
+
+    return {
+      label: 'Stateless Reconstruction',
+      subtext: 'This stateless baseline is rebuilt from the recorded Engram conversation JSON so the comparison follows the same turns.',
+    };
+  }
+
+  if (inferenceMode === 'stateful') {
+    return {
+      label: 'Pre-recorded Simulated Session',
+      subtext: 'This session was recorded statelessly and then reprocessed to emulate a stateful interaction.',
+    };
+  }
+
+  return {
+    label: 'Stateless Playback',
+    subtext: 'This is a playback of a stateless recorded session, captured as the baseline for comparison.',
+  };
 }

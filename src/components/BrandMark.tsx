@@ -69,7 +69,11 @@ export function BrandMark({
 
 export function PoweredByOvh({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={compact ? 'flex shrink-0 items-center gap-1.5' : 'flex shrink-0 items-center gap-2'}>
+    <div
+      className={compact ? 'pointer-events-auto flex shrink-0 items-center gap-1.5' : 'pointer-events-auto flex shrink-0 items-center gap-2'}
+      title="Clarit.ai is a proud participant in the OVHcloud Startups Program."
+      aria-label="Clarit.ai is a proud participant in the OVHcloud Startups Program."
+    >
       <span className={compact ? 'font-mono text-[7px] uppercase tracking-[0.16em] text-text-muted' : 'font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-text-secondary'}>
         Powered by
       </span>
