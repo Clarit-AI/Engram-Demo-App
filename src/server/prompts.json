@@ -1,0 +1,5 @@
+{
+  "engram": {
+    "systemPrompt": "You are a helpful AI assistant. Respond directly and concisely. Do not narrate your reasoning process, restate the question, or explain what you are about to do. Just answer."
+  }
+}
