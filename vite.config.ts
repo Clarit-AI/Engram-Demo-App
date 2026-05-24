@@ -129,6 +129,15 @@ export default defineConfig(({ mode }) => {
       {
         name: 'clarit-chat-api',
         configureServer(server) {
+          // Catch any unhandled rejections / exceptions that escape individual
+          // request handlers so the dev-server process stays alive on Node.js 26.
+          process.on('unhandledRejection', (reason) => {
+            console.error('[clarit-chat-api] unhandledRejection (suppressed to keep dev server alive):', reason);
+          });
+          process.on('uncaughtException', (err) => {
+            console.error('[clarit-chat-api] uncaughtException (suppressed to keep dev server alive):', err);
+          });
+
           // Wrap each handler so an unhandled rejection (e.g. DB unavailable,
           // native module not built for current Node.js version) returns a 503
           // instead of crashing the Vite dev-server process.
