@@ -5,11 +5,6 @@ import { BrandMark, PoweredByOvh } from './BrandMark';
 import { RecordingExportControl } from './RecordingExportControl';
 import { DEFAULT_LIVE_MODEL } from '../services/inferenceProvider';
 
-/** Show debug controls strictly when VITE_SESSION_DEBUG=true is configured. */
-function shouldShowDebugControls(): boolean {
-  return import.meta.env.VITE_SESSION_DEBUG === 'true';
-}
-
 function formatModelName(model: string): string {
   if (!model) return '';
   if (model.includes('nemotron')) {
@@ -29,14 +24,9 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
   const setPhase = useArcStore((s) => s.setPhase);
   const setAppMode = useArcStore((s) => s.setAppMode);
   const setTurn = useArcStore((s) => s.setTurn);
-  const phase = useArcStore((s) => s.phase);
-  const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
-  const setDebugHoldStateless = useArcStore((s) => s.setDebugHoldStateless);
-  const activeDemo = useArcStore((s) => s.activeDemo);
 
   const availabilityState = useArcStore((s) => s.availabilityState);
   const isStateful = inferenceMode === 'stateful';
-  const canReveal = phase === 'peaking';
   const currentModel = appMode === 'chat' ? DEFAULT_LIVE_MODEL : (activeDemo?.model || DEFAULT_LIVE_MODEL);
 
   const availabilityLabel =
@@ -172,61 +162,6 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
             Actually chat
           </button>
 
-          {shouldShowDebugControls() && !mobile && (
-            <div className="flex min-h-9 items-center gap-1 rounded-full bg-surface-container px-1.5 border border-black/5">
-              <button
-                type="button"
-                title={debugHoldStateless ? 'Hold is ON — reveal will not auto-trigger after the last turn' : 'Hold is OFF — reveal will auto-trigger after the last turn'}
-                onClick={() => setDebugHoldStateless(!debugHoldStateless)}
-                className="rounded-full px-2.5 py-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em]"
-                style={{
-                  background: debugHoldStateless ? 'rgba(0,98,157,0.08)' : 'transparent',
-                  color: debugHoldStateless ? '#004B78' : '#111827',
-                }}
-              >
-                Hold
-              </button>
-              <button
-                type="button"
-                disabled={!canReveal}
-                title={canReveal ? 'Trigger the stateful reveal now' : 'Reveal activates only after the last demo turn completes (phase: peaking)'}
-                onClick={() => {
-                  setDebugHoldStateless(false);
-                  setPhase('revealing');
-                }}
-                className="rounded-full px-2.5 py-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em] disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ color: canReveal ? '#005C4F' : '#9CA3AF' }}
-              >
-                Reveal
-              </button>
-              <button
-                type="button"
-                title={`Availability: ${availabilityState} — click to cycle`}
-                onClick={() => {
-                  const next: Array<'offline' | 'code-required' | 'open'> = ['offline', 'code-required', 'open'];
-                  const idx = next.indexOf(availabilityState);
-                  useArcStore.getState().setAvailabilityState(next[(idx + 1) % next.length]);
-                }}
-                className="rounded-full px-2.5 py-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em]"
-                style={{
-                  background:
-                    availabilityState === 'open'
-                      ? 'rgba(0,200,100,0.12)'
-                      : availabilityState === 'code-required'
-                        ? 'rgba(255,180,0,0.12)'
-                        : 'transparent',
-                  color:
-                    availabilityState === 'open'
-                      ? '#00c864'
-                      : availabilityState === 'code-required'
-                        ? '#b45309'
-                        : '#111827',
-                }}
-              >
-                Avail
-              </button>
-            </div>
-          )}
           {!mobile && <RecordingExportControl />}
           {!mobile && (
             <div
