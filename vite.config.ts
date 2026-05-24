@@ -74,6 +74,13 @@ function serverRecordingExportEnabled(env: ChatServerEnv): boolean {
   return env.RECORDING_EXPORT_SERVER_ENABLED === 'true';
 }
 
+function publicStatelessProvider(value: unknown): string {
+  const provider = typeof value === 'string' ? value.toLowerCase() : '';
+  if (provider === 'nvidia' || provider === 'nvidia-nim' || provider === 'nim') return 'nvidia-nim';
+  if (provider === 'openrouter') return 'openrouter';
+  return '';
+}
+
 function sanitizeFilename(value: unknown): string {
   const candidate = typeof value === 'string' ? value : 'simulation-playback.json';
   const base = path.basename(candidate).replace(/[^a-zA-Z0-9._-]/g, '-');
@@ -120,6 +127,9 @@ export default defineConfig(({ mode }) => {
   } as ChatServerEnv;
 
   return {
+    define: {
+      'import.meta.env.VITE_STATELESS_PROVIDER': JSON.stringify(publicStatelessProvider(serverEnv.STATELESS_PROVIDER)),
+    },
     optimizeDeps: {
       include: ['ovh', 'better-sqlite3'],
     },
@@ -129,41 +139,72 @@ export default defineConfig(({ mode }) => {
       {
         name: 'clarit-chat-api',
         configureServer(server) {
-          server.middlewares.use('/api/chat', async (req, res) => {
+          // Catch any unhandled rejections / exceptions that escape individual
+          // request handlers so the dev-server process stays alive on Node.js 26.
+          process.on('unhandledRejection', (reason) => {
+            console.error('[clarit-chat-api] unhandledRejection (suppressed to keep dev server alive):', reason);
+          });
+          process.on('uncaughtException', (err) => {
+            console.error('[clarit-chat-api] uncaughtException (suppressed to keep dev server alive):', err);
+          });
+
+          // Wrap each handler so an unhandled rejection (e.g. DB unavailable,
+          // native module not built for current Node.js version) returns a 503
+          // instead of crashing the Vite dev-server process.
+          function safeHandler(
+            handler: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>,
+          ) {
+            return async (
+              req: import('node:http').IncomingMessage,
+              res: import('node:http').ServerResponse,
+            ) => {
+              try {
+                await handler(req, res);
+              } catch (err) {
+                console.error('[clarit-chat-api] unhandled error in middleware:', err);
+                if (!res.headersSent) {
+                  res.writeHead(503, { 'content-type': 'application/json' });
+                  res.end(JSON.stringify({ error: 'Service temporarily unavailable.' }));
+                }
+              }
+            };
+          }
+
+          server.middlewares.use('/api/chat', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleChatRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/session', async (req, res) => {
+          server.middlewares.use('/api/session', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleSessionRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/recording/export', async (req, res) => {
+          server.middlewares.use('/api/recording/export', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleRecordingExportRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/recording/comparative', async (req, res) => {
+          server.middlewares.use('/api/recording/comparative', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleComparativeRecordingRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/redeem', async (req, res) => {
+          server.middlewares.use('/api/redeem', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleRedeemRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/admin/schedule', async (req, res) => {
+          server.middlewares.use('/api/admin/schedule', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleScheduleAdminRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
           // Initialize schedule, codes, and database from env
           initScheduleFromEnv(serverEnv);

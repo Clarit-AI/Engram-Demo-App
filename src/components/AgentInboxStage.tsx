@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { AgentRequestBundle } from '../lib/agentRequestBundle';
 import { StreamingCursor } from './StreamingCursor';
@@ -116,7 +116,7 @@ export const AgentInboxStage = memo(function AgentInboxStage({
   if (!bundle) {
     return (
       <div className="relative flex h-full items-center justify-center overflow-hidden rounded-[1.75rem] bg-[#0d1117] text-[11px] font-mono uppercase tracking-[0.2em] text-on-surface-dark-faint">
-        Waiting for first request...
+        Awaiting input
       </div>
     );
   }
@@ -415,6 +415,52 @@ function markdownGroups(bundle: AgentRequestBundle, visibleChars: number): Markd
   return groups;
 }
 
+type ReReadBadgeTheme = {
+  label: string;
+  gradient: string;
+  panelBackground: string;
+  border: string;
+  accent: string;
+  glow: string;
+};
+
+function reReadBadgeTheme(sentCount: number): ReReadBadgeTheme {
+  if (sentCount >= 4) {
+    return {
+      label: 'extreme waste',
+      gradient: '#D50000',
+      panelBackground: 'linear-gradient(135deg, rgba(213,0,0,0.18), rgba(255,23,68,0.14))',
+      border: 'rgba(255,23,68,0.86)',
+      accent: '#FF5252',
+      glow: '0 8px 24px rgba(213,0,0,0.48), 0 0 30px rgba(255,23,68,0.28)',
+    };
+  }
+
+  if (sentCount >= 2) {
+    return {
+      label: 'moderate waste',
+      gradient: 'linear-gradient(135deg, #FFB74D, #FF9800)',
+      panelBackground: 'linear-gradient(135deg, rgba(255,183,77,0.16), rgba(255,152,0,0.14))',
+      border: 'rgba(255,183,77,0.82)',
+      accent: '#FFB74D',
+      glow: '0 8px 24px rgba(255,183,77,0.36)',
+    };
+  }
+
+  return {
+    label: 'new message',
+    gradient: 'linear-gradient(135deg, #4CAF50, #66BB6A)',
+    panelBackground: 'linear-gradient(135deg, rgba(76,175,80,0.16), rgba(102,187,106,0.14))',
+    border: 'rgba(76,175,80,0.74)',
+    accent: '#66BB6A',
+    glow: '0 8px 24px rgba(76,175,80,0.3)',
+  };
+}
+
+function formatTokenCount(tokens: number): string {
+  return tokens.toLocaleString('en-US');
+}
+
 function StatelessMarkdownTranscript({
   bundle,
   currentTurn,
@@ -473,16 +519,20 @@ function MarkdownExchangeGroup({
   currentTurn: number;
   showCursor: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const sentCount = Math.max(1, currentTurn - group.turn + 1);
   const wastedTokens = Math.max(0, sentCount - 1) * group.tokens;
   const isNewestGroup = group.latest && group.turn === currentTurn;
+  const theme = reReadBadgeTheme(sentCount);
   const tooltip =
     wastedTokens > 0
-      ? `This message pair was sent to the model ${sentCount} times. Only the first send was new; the other ${sentCount - 1} sends repeated about ${wastedTokens} tokens.`
+      ? `This message pair was sent to the model ${sentCount} times. Only the first send was new; the other ${sentCount - 1} sends repeated about ${formatTokenCount(wastedTokens)} tokens.`
       : 'This is the newest message group. It has only been sent once, so nothing has been re-sent yet.';
   const latestClass = group.latestBodyVisible
     ? 'border-l-4 border-[#00a3ff] bg-[#d9f1ff] text-[#102335]'
     : 'border-l-4 border-transparent';
+  const badgeLabel = isNewestGroup || sentCount === 1 ? 'new' : `${sentCount}x`;
+  const badgeValue = wastedTokens > 0 ? `${formatTokenCount(wastedTokens)} tok` : '0 tok';
 
   return (
     <div
@@ -502,22 +552,80 @@ function MarkdownExchangeGroup({
         ))}
         {showCursor ? <StreamingCursor /> : null}
       </div>
-      <div
-        className="group/badge absolute right-2 top-2 rounded-full border border-[#00629d]/15 bg-white px-2 py-1 text-right font-mono text-[8px] uppercase tracking-[0.12em] text-[#00629d] shadow-[0_10px_22px_-20px_rgba(0,98,157,0.7)] transition-colors group-hover/exchange:bg-[#d9f1ff] xl:-right-[7.15rem] xl:border-white/70 xl:bg-white xl:text-[#00629d] xl:shadow-[0_18px_38px_-22px_rgba(0,0,0,0.95)] xl:group-hover/exchange:bg-[#d9f1ff]"
+      {group.latestBodyVisible && (
+        <div className="pointer-events-none absolute right-3 top-2 hidden font-mono text-[7px] font-bold uppercase tracking-[0.18em] text-[#00629d]/65 xl:block">
+          Latest message
+        </div>
+      )}
+      <button
+        type="button"
+        className={[
+          'agent-re-read-badge absolute right-2 top-2 rounded-[20px] px-3 py-1.5 text-right font-mono text-[8px] font-bold uppercase tracking-[0.12em] text-white transition-[opacity,transform] duration-200 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-[#111820] xl:-right-[7.15rem]',
+          expanded
+            ? 'pointer-events-none scale-95 opacity-0'
+            : 'scale-100 opacity-100 hover:scale-[1.03] active:scale-[0.98]',
+        ].join(' ')}
+        style={{ background: theme.gradient, boxShadow: theme.glow }}
         aria-label={tooltip}
-        tabIndex={0}
+        aria-expanded={expanded}
+        title={tooltip}
+        onClick={() => setExpanded((value) => !value)}
       >
-        <div>{isNewestGroup ? 'new' : `sent ${sentCount}x`}</div>
-        <div className="mt-0.5 text-[#6f7b89]">
-          {wastedTokens > 0 ? `~${wastedTokens} tok` : '0 wasted'}
-        </div>
+        <span className="block text-[7px] font-semibold opacity-75">
+          {sentCount === 1 ? 'Status' : 'Re-sent'}
+        </span>
+        <span className="block text-[11px] leading-tight">
+          {badgeLabel}
+        </span>
+        <span className="mt-1 block text-[7px] font-semibold opacity-75">
+          Wasted
+        </span>
+        <span className="block text-[8px] leading-tight">
+          {badgeValue} {expanded ? '^' : 'v'}
+        </span>
+      </button>
+      {expanded && (
         <div
-          className="pointer-events-none absolute right-0 top-full z-30 mt-2 w-[220px] rounded-xl border border-white/70 bg-white px-3 py-2 text-left font-sans text-[11px] normal-case leading-snug tracking-normal text-[#26313e] opacity-0 shadow-[0_18px_42px_-26px_rgba(0,0,0,0.9)] transition-opacity duration-150 group-hover/badge:opacity-100 group-focus/badge:opacity-100"
-          role="tooltip"
+          className="absolute right-2 top-2 z-40 w-[210px] rounded-xl px-3 py-3 text-left shadow-[0_18px_42px_-24px_rgba(0,0,0,0.85)] xl:-right-[13.2rem]"
+          style={{
+            background: theme.panelBackground,
+            border: `2px solid ${theme.border}`,
+            boxShadow: theme.glow,
+          }}
         >
-          {tooltip}
+          <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[8px] font-bold uppercase tracking-[0.12em]" style={{ color: theme.accent }}>
+            <span>{sentCount === 1 ? 'First send' : 'Re-send breakdown'}</span>
+            <button
+              type="button"
+              className="rounded-full px-1 text-[12px] leading-none text-white/70 transition-colors hover:text-white focus:outline-none focus:ring-1 focus:ring-white/70"
+              aria-label="Close re-send breakdown"
+              onClick={() => setExpanded(false)}
+            >
+              x
+            </button>
+          </div>
+          <div className="space-y-1 font-sans text-[11px] normal-case leading-snug tracking-normal text-white/88">
+            {Array.from({ length: sentCount }, (_, index) => {
+              const isInitialSend = index === 0;
+              return (
+                <div key={index} className="flex items-center justify-between gap-3">
+                  <span>{isInitialSend ? 'Send 1 (new):' : `Send ${index + 1}:`}</span>
+                  <strong style={{ color: isInitialSend ? 'white' : theme.accent }}>
+                    {isInitialSend ? formatTokenCount(group.tokens) : `+${formatTokenCount(group.tokens)}`} tok
+                  </strong>
+                </div>
+              );
+            })}
+            <div className="mt-2 flex items-center justify-between gap-3 border-t pt-2 font-semibold" style={{ borderColor: theme.border }}>
+              <span>Total wasted:</span>
+              <strong style={{ color: theme.accent }}>{formatTokenCount(wastedTokens)} tok</strong>
+            </div>
+            <p className="pt-1 text-[10px] leading-snug text-white/66">
+              {theme.label}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

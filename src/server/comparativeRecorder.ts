@@ -510,6 +510,7 @@ export async function buildComparativeRecording(
       createdAt: recordedAt,
       updatedAt: nowMs(),
       mode: 'stateful',
+      recordingMode: 'stateful',
       model,
     },
     turnPayloads: generated.map((turn, index) => ({

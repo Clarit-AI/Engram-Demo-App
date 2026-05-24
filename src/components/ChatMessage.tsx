@@ -41,7 +41,7 @@ export const ChatMessage = memo(function ChatMessage({
         transition={{ type: 'spring', stiffness: 340, damping: 24, mass: 0.7 }}
       >
         <div
-          className="max-w-[78%] rounded-full px-4 py-2 text-[14px] leading-relaxed whitespace-pre-wrap"
+          className="max-w-[78%] rounded-2xl px-4 py-2 text-[14px] leading-relaxed whitespace-pre-wrap"
           style={{
             background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
             color: '#FFFFFF',

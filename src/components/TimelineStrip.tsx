@@ -2,20 +2,28 @@ import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { useArcStore } from '../store/arcStore';
 
+const MIN_TURNS = 1;
+
 /**
- * TimelineStrip — horizontal progress ticker of N turns.
- * Past turns: filled muted dot
- * Current turn: filled signal-blue dot with glow + spring-scale 1.35×
- * Future turns: ghost-bordered outline dot
+ * TimelineStrip — bottom progress ticker for the agent pane.
  *
- * The phase label on the right is a diagnostic cue; it quietly changes
- * as the arc moves through its state machine (streaming / awaiting /
- * responding / settled / peaking / revealing / post-arc).
+ * Playback uses the loaded demo's turn count; live chat grows with the
+ * conversation until the visual cap is reached. Past turns render as muted
+ * dots, the active turn renders as a glowing signal-blue dot, and future
+ * playback turns render as ghost outlines. The right edge carries the product
+ * copyright line.
  */
 export const TimelineStrip = memo(function TimelineStrip({ mobile = false }: { mobile?: boolean }) {
   const currentTurn = useArcStore((s) => s.currentTurn);
+  const totalTurns = useArcStore((s) => s.totalTurns);
   const turnsCap = useArcStore((s) => s.turnsCap);
-  const phase = useArcStore((s) => s.phase);
+  const appMode = useArcStore((s) => s.appMode);
+
+  const sourceTurnCount = appMode === 'chat'
+    ? Math.max(currentTurn, MIN_TURNS)
+    : Math.max(totalTurns, currentTurn, MIN_TURNS);
+  const dotCount = Math.min(sourceTurnCount, turnsCap);
+  const activeTurn = Math.min(Math.max(currentTurn, MIN_TURNS), dotCount);
 
   return (
     <div
@@ -26,11 +34,10 @@ export const TimelineStrip = memo(function TimelineStrip({ mobile = false }: { m
       }}
     >
       <div className="flex items-center gap-2">
-        {Array.from({ length: turnsCap }, (_, i) => {
+        {Array.from({ length: dotCount }, (_, i) => {
           const n = i + 1;
-          const t = Math.max(1, currentTurn);
           const state: 'past' | 'current' | 'future' =
-            n < t ? 'past' : n === t ? 'current' : 'future';
+            n < activeTurn ? 'past' : n === activeTurn ? 'current' : 'future';
           const bg =
             state === 'current'
               ? 'var(--primary-container)'
@@ -64,10 +71,20 @@ export const TimelineStrip = memo(function TimelineStrip({ mobile = false }: { m
           style={{ background: 'rgba(190,199,212,0.08)' }}
         />
         <span
-          className="text-[9px] font-mono uppercase tracking-[0.22em]"
-          style={{ color: 'var(--on-surface-dark-faint)' }}
+          className="text-[9px] font-mono tracking-[0.14em]"
+          style={{ color: 'rgba(190,199,212,0.68)' }}
         >
-          {phase}
+          Copyright © 2026{' '}
+          <a
+            href="https://clarit.ai"
+            target="_blank"
+            rel="noreferrer"
+            className="pointer-events-auto underline-offset-2 transition-colors hover:underline"
+            style={{ color: 'rgba(190,199,212,0.82)' }}
+          >
+            Clarit.ai
+          </a>{' '}
+          - The cure for Agent Amnesia
         </span>
       </div>
     </div>
