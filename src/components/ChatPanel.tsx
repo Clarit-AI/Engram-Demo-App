@@ -398,12 +398,16 @@ function LiveProviderChips({
   const providerMode = metadata?.providerMode;
   const statelessProvider = metadata?.statelessProvider;
   const configuredStatelessProvider = import.meta.env.VITE_STATELESS_PROVIDER as 'nvidia-nim' | 'openrouter' | '' | undefined;
+  const configuredStatefulMode = import.meta.env.VITE_STATEFUL_PROVIDER_MODE;
   const liveModel = (metadata?.model || DEFAULT_LIVE_MODEL).toLowerCase();
   const inferredStatelessProvider = liveModel.includes('nvidia/') || liveModel.includes('nemotron')
     ? 'nvidia-nim'
     : 'openrouter';
   const effectiveStatelessProvider = statelessProvider ?? configuredStatelessProvider ?? inferredStatelessProvider;
-  const isEngram = providerMode === 'stateful-engram';
+  // Before the first message, metadata is absent — fall back to the configured stateful mode
+  // so the chip reflects the intended provider rather than defaulting to "Simulated".
+  const isEngram = providerMode === 'stateful-engram' ||
+    (!providerMode && inferenceMode === 'stateful' && configuredStatefulMode === 'stateful-engram');
   const providerLabel = isEngram
     ? 'Engram'
     : effectiveStatelessProvider === 'nvidia-nim'
@@ -415,7 +419,10 @@ function LiveProviderChips({
           : inferenceMode === 'stateful'
             ? 'Alternate provider'
             : 'Provider pending';
-  const isSimulated = providerLabel !== 'Engram';
+  // "Simulated" badge only appears in simulated-engram mode (stateless provider pretending to be Engram).
+  // Pure stateless NIM/OpenRouter is not simulated — it's genuinely stateless.
+  const isSimulated = providerMode === 'simulated-engram' ||
+    (!providerMode && inferenceMode === 'stateful' && configuredStatefulMode !== 'stateful-engram');
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">

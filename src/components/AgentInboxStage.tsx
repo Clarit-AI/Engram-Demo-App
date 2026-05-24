@@ -28,7 +28,7 @@ function speakerFor(role: AgentRequestBundle['sections'][number]['role']): strin
     case 'assistant':
       return 'Assistant';
     case 'context':
-      return 'Context';
+      return 'Snapshot';
     case 'user':
     default:
       return 'Human';
@@ -42,7 +42,7 @@ function markdownHeadingFor(role: AgentRequestBundle['sections'][number]['role']
     case 'assistant':
       return '## Assistant';
     case 'context':
-      return '## Context';
+      return '## Snapshot';
     case 'user':
     default:
       return '## Human';

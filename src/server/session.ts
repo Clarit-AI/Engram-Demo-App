@@ -17,6 +17,7 @@ import {
   provisionInstance,
 } from './ovhProvision';
 import { isWindowActive } from './schedule';
+import { getEngramHealth } from './engramHealth';
 
 type RateLimitDecision =
   | {
@@ -396,6 +397,7 @@ function buildRateLimitMetadata(
     queueDepth: dbQueueCount(),
     provisionState: provState.state,
     statelessAvailable,
+    engramAvailable: !!env?.ENGRAM_BASE_URL && getEngramHealth().status !== 'offline',
   };
 }
 

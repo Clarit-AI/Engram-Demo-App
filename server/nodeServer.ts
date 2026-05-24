@@ -11,6 +11,7 @@ import { handleRedeemRequest, handleScheduleAdminRequest } from '../src/server/r
 import { handleSessionRequest } from '../src/server/session';
 import { initScheduleFromEnv } from '../src/server/schedule';
 import { parseInviteCodes } from '../src/server/codes';
+import { startEngramHealthMonitor } from '../src/server/engramHealth';
 import type { ChatServerEnv } from '../src/server/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -226,6 +227,7 @@ function initializeServerState(): void {
   initScheduleFromEnv(env);
   parseInviteCodes(env.INVITE_CODES);
   initDb();
+  startEngramHealthMonitor(env);
   try {
     initProvisionStateFromDb();
   } catch {
