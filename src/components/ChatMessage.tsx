@@ -1,4 +1,7 @@
 import { memo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import { motion } from 'framer-motion';
 
 export interface ChatMessageProps {
@@ -61,13 +64,18 @@ export const ChatMessage = memo(function ChatMessage({
       transition={{ type: 'spring', stiffness: 300, damping: 26, mass: 0.8 }}
     >
       <div
-        className="max-w-[88%] rounded-2xl px-5 py-3 text-[14px] leading-relaxed ambient-shadow whitespace-pre-wrap"
+        className="md-content max-w-[88%] rounded-2xl px-5 py-3 text-[14px] leading-relaxed ambient-shadow"
         style={{
           background: 'var(--surface-container-lowest)',
           color: 'var(--on-surface)',
         }}
       >
-        {content}
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeSanitize]}
+        >
+          {content}
+        </ReactMarkdown>
         {trailingCursor}
       </div>
     </motion.div>

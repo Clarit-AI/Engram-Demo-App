@@ -58,6 +58,32 @@ export function useStreamText({
   const intervalRef = useRef<number | null>(null);
   const firedCompleteRef = useRef(false);
   const completeCbRef = useRef(onComplete);
+  // Tracks whether the most recent text change was a forward extension (live
+  // token append) vs a genuine swap. Used to decide whether to carry
+  // lastTickRef forward in the animation cleanup — extensions should not
+  // waste a frame resetting the clock; genuine swaps should start fresh.
+  const isExtensionRef = useRef(true);
+
+  const textRef = useRef(text);
+  const newContentStartRef = useRef(newContentStart);
+  const fastRateRef = useRef(fastRate);
+  const slowRateRef = useRef(slowRate);
+
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
+
+  useEffect(() => {
+    newContentStartRef.current = newContentStart;
+  }, [newContentStart]);
+
+  useEffect(() => {
+    fastRateRef.current = fastRate;
+  }, [fastRate]);
+
+  useEffect(() => {
+    slowRateRef.current = slowRate;
+  }, [slowRate]);
 
   useEffect(() => {
     completeCbRef.current = onComplete;
@@ -72,6 +98,7 @@ export function useStreamText({
     const prior = lastTextRef.current;
     lastTextRef.current = text;
     const isExtension = text.length >= prior.length && text.startsWith(prior);
+    isExtensionRef.current = isExtension;
     if (isExtension) {
       // Text grew (or stayed the same) — keep our place. Just clear the
       // completion flag since there might now be more to stream.
@@ -79,6 +106,8 @@ export function useStreamText({
       return;
     }
     // Genuine target swap (different turn / different demo) — restart.
+    // Reset the tick clock here so the animation effect's cleanup doesn't
+    // need to know whether this was a swap or an extension.
     pointerRef.current = 0;
     lastTickRef.current = 0;
     firedCompleteRef.current = false;
@@ -103,7 +132,7 @@ export function useStreamText({
   }, [text.length, instant]);
 
   useEffect(() => {
-    if (!playing || !text || firedCompleteRef.current) return;
+    if (!playing) return;
 
     const tick = () => {
       const now = performance.now();
@@ -114,22 +143,23 @@ export function useStreamText({
       const dt = Math.min((now - lastTickRef.current) / 1000, 0.1);
       lastTickRef.current = now;
 
+      const currentText = textRef.current;
+      if (pointerRef.current >= currentText.length) {
+        return;
+      }
+
       const rate =
-        pointerRef.current < newContentStart ? fastRate : slowRate;
+        pointerRef.current < newContentStartRef.current ? fastRateRef.current : slowRateRef.current;
       pointerRef.current += rate * dt;
 
-      const clamped = Math.min(pointerRef.current, text.length);
+      const clamped = Math.min(pointerRef.current, currentText.length);
       const flooredInt = Math.floor(clamped);
       setStreamedChars((prev) => (prev === flooredInt ? prev : flooredInt));
 
-      if (clamped >= text.length) {
+      if (clamped >= currentText.length) {
         if (!firedCompleteRef.current) {
           firedCompleteRef.current = true;
           completeCbRef.current?.();
-        }
-        if (intervalRef.current !== null) {
-          window.clearInterval(intervalRef.current);
-          intervalRef.current = null;
         }
       }
     };
@@ -140,9 +170,17 @@ export function useStreamText({
         window.clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      lastTickRef.current = 0;
+      // Only reset the tick clock for genuine target swaps. Extensions
+      // (live token appends) carry lastTickRef forward so the restarted
+      // interval doesn't waste a frame re-recording the timestamp.
+      // Genuine swaps already reset lastTickRef in the extension-detection
+      // effect above, so we only need to handle the non-extension case here
+      // as a safety net (e.g. rate/playing changes while on a genuine turn).
+      if (!isExtensionRef.current) {
+        lastTickRef.current = 0;
+      }
     };
-  }, [text, playing, newContentStart, fastRate, slowRate]);
+  }, [playing]);
 
   return {
     streamedChars,

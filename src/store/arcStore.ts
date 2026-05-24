@@ -60,6 +60,10 @@ interface ArcState {
   // --- App-level state ---
   appMode: AppMode;
   inferenceMode: InferenceMode;
+  /** The inference mode that was active when the most recent chat turn was sent.
+   * Stays locked after send so toggling the UI toggle mid-conversation doesn't
+   * change the JSON payload visualization and trigger a useStreamText replay. */
+  chatPayloadMode: InferenceMode;
 
   // --- Demo catalog ---
   catalog: DemoMeta[];
@@ -96,6 +100,7 @@ interface ArcState {
   // --- Actions ---
   setAppMode: (mode: AppMode) => void;
   setInferenceMode: (mode: InferenceMode) => void;
+  setChatPayloadMode: (mode: InferenceMode) => void;
   setCatalog: (catalog: DemoMeta[]) => void;
   setActiveDemo: (key: string, demo: DemoMeta) => void;
   setPhase: (phase: ArcPhase) => void;
@@ -111,6 +116,7 @@ interface ArcState {
 export const useArcStore = create<ArcState>((set, get) => ({
   appMode: null,
   inferenceMode: 'stateless',
+  chatPayloadMode: 'stateless',
 
   catalog: [],
   activeDemoKey: DEFAULT_DEMO_KEY,
@@ -136,6 +142,7 @@ export const useArcStore = create<ArcState>((set, get) => ({
 
   setAppMode: (mode) => set({ appMode: mode }),
   setInferenceMode: (mode) => set({ inferenceMode: mode }),
+  setChatPayloadMode: (mode) => set({ chatPayloadMode: mode }),
 
   setCatalog: (catalog) => set({ catalog }),
   setActiveDemo: (key, demo) =>

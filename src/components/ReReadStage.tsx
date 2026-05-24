@@ -57,9 +57,11 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
   const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
-  const consented = useArcStore((s) => s.consented);
   const liveMessages = useChatStore((s) => s.messages);
   const liveAssistantBuffer = useChatStore((s) => s.liveAssistantBuffer);
+  // The inference mode locked at turn-send time — stable across UI toggles.
+  const chatPayloadMode = useArcStore((s) => s.chatPayloadMode);
+
   const setCatalog = useArcStore((s) => s.setCatalog);
   const setActiveDemo = useArcStore((s) => s.setActiveDemo);
   const setAppMode = useArcStore((s) => s.setAppMode);
@@ -109,7 +111,10 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
         ? liveMessages.slice(0, -1)
         : liveMessages;
 
-      const provider = getInferenceProvider(inferenceMode);
+      // Use the snapshotted mode (locked at send time) so that toggling
+      // stateless/stateful in the UI doesn't change payloadText mid-turn
+      // and trigger a useStreamText reset/replay.
+      const provider = getInferenceProvider(chatPayloadMode);
       const wire = provider.buildWirePayload(requestMessages, DEFAULT_LIVE_MODEL);
       const requestText = stringifyWirePayload(wire);
       const responseContent = liveAssistantBuffer;
@@ -134,22 +139,21 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
 
     const { fullText, responseBoundary: boundary } = composeTurnStreamText(requestText, responseContent);
     return { payloadText: fullText, responseBoundary: boundary };
-  }, [appMode, activeDemo, currentTurn, liveMessages, liveAssistantBuffer, inferenceMode, phase]);
+  }, [appMode, activeDemo, currentTurn, liveMessages, liveAssistantBuffer, phase, chatPayloadMode]);
 
   /** Prior turn full stream text — used to compute recall divergence */
   const priorPayloadText = useMemo(() => {
     if (currentTurn < 2) return '';
     if (appMode === 'chat') {
-      // Build the prior turn's wire payload from chatStore history. In
-      // stateless mode this gives a meaningful "recall" prefix; in
-      // stateful mode the wire payload is already minimal so divergence
-      // is essentially the whole thing (and that's the correct story).
+      // Build the prior turn's wire payload from chatStore history. Use the
+      // snapshotted mode for the same reason as payloadText — we don't want
+      // a UI toggle to change the recall prefix and cause a stream restart.
       const userIdxs: number[] = [];
       liveMessages.forEach((m, i) => { if (m.role === 'user') userIdxs.push(i); });
       const priorUserIdx = userIdxs[currentTurn - 2];
       if (priorUserIdx === undefined) return '';
       const priorMessages = liveMessages.slice(0, priorUserIdx + 1);
-      const provider = getInferenceProvider(inferenceMode);
+      const provider = getInferenceProvider(chatPayloadMode);
       const wire = provider.buildWirePayload(priorMessages, DEFAULT_LIVE_MODEL);
       const requestText = stringifyWirePayload(wire);
       // Prior turn's assistant text (already in store)
@@ -167,7 +171,7 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
     const responseContent = convo[2 * prior - 1]?.content ?? '';
     const { fullText } = composeTurnStreamText(requestText, responseContent);
     return fullText;
-  }, [activeDemo, currentTurn, appMode, liveMessages, inferenceMode]);
+  }, [activeDemo, currentTurn, appMode, liveMessages, chatPayloadMode]);
 
   const newContentStart = useMemo(() => {
     if (!priorPayloadText) return 0; // turn 1 → everything is new
@@ -238,7 +242,6 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
 
     switch (phase) {
       case 'intro':
-        if (!consented) break;
         // First-turn kickoff: user message appears in chat pane BEFORE
         // the JSON starts "reading" it on the left (realistic ordering).
         window.setTimeout(() => setTurn(1), HOLD_INTRO - 10);
@@ -295,7 +298,6 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
     setTurn,
     composingComplete,
     debugHoldStateless,
-    consented,
   ]);
 
   // ---- Context Engine scan progress ----
@@ -523,8 +525,38 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
         </motion.div>
       )}
 
+      {/* Simulated Disclosure Banner */}
+      <SimulatedDisclosure visible={inferenceMode === 'stateful'} mobile={mobile} />
+
       {/* Timeline strip */}
       <TimelineStrip mobile={mobile} />
+    </div>
+  );
+}
+
+function SimulatedDisclosure({ visible, mobile }: { visible: boolean; mobile?: boolean }) {
+  if (!visible) return null;
+  
+  return (
+    <div className={mobile ? 'absolute bottom-[3.5rem] left-3 right-3 z-30 flex justify-center pointer-events-none' : 'absolute bottom-[4.5rem] left-8 right-8 z-30 flex justify-center pointer-events-none'}>
+      <div 
+        className="glass-chip-dark flex flex-col gap-1.5 rounded-xl px-4 py-3 ambient-shadow-dark max-w-[420px] backdrop-blur-md"
+        style={{ 
+          background: 'rgba(16,27,40,0.85)',
+          border: '1px solid rgba(104,250,221,0.25)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(104,250,221,0.1) inset'
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="flex h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: 'var(--secondary-container)' }} />
+          <span className="font-mono text-[9px] uppercase font-bold tracking-[0.2em]" style={{ color: 'var(--secondary-container)' }}>
+            Simulated Environment
+          </span>
+        </div>
+        <p className="text-[11px] leading-relaxed opacity-90 font-sans" style={{ color: 'var(--on-surface-dark)' }}>
+          The Engram backend is currently offline. This view simulates how the system retains context without transmitting the full history.
+        </p>
+      </div>
     </div>
   );
 }

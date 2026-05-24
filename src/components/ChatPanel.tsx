@@ -141,12 +141,13 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
   // Input is enabled only in chat mode and when not currently streaming.
   const inputDisabled =
     !isChat ||
+    phase === 'streaming' ||
     liveStatus === 'streaming-request' ||
     liveStatus === 'streaming-response' ||
     liveStatus === 'awaiting';
 
   const inputPlaceholder = isChat
-    ? liveStatus === 'streaming-response'
+    ? (liveStatus === 'streaming-response' || phase === 'streaming')
       ? 'streaming…'
       : 'Message the model…'
     : 'Chat unlocks after the simulation…';
@@ -172,7 +173,7 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
               What Humans See
             </div>
             <div className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-              {isChat ? 'Live chat surface' : 'Clean user view'}
+              Clean user view
             </div>
           </div>
 
@@ -283,7 +284,9 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
           <div className="flex flex-col gap-3 py-2">
             {(() => {
               const nodes: ReactNode[] = [];
-              const turnsToShow = Math.min(currentTurn, turnPairs.length);
+              const turnsToShow = isChat
+                ? turnPairs.length
+                : Math.min(currentTurn, turnPairs.length);
               for (let i = 0; i < turnsToShow; i++) {
                 const pair = turnPairs[i];
                 const turnNum = i + 1;
@@ -392,33 +395,22 @@ function LiveProviderChips({
   return (
     <div className="flex shrink-0 items-center gap-1.5">
       <span
-        className="glass-chip rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em]"
+        className="glass-chip rounded-full min-h-9 flex items-center px-3.5 text-[9px] font-mono uppercase tracking-[0.18em]"
         style={{ color: accent, background }}
       >
         Live · {requestShape}
       </span>
-      {metadata && (
+
+      {inferenceMode === 'stateful' && (
         <span
-          className="hidden rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted sm:inline-flex"
-          style={{
-            background: 'var(--surface-container)',
-            border: '1px solid rgba(25,28,30,0.08)',
-          }}
-          title={`Provider: ${metadata.providerMode}. Sent ${metadata.sentMessageCount} of ${metadata.canonicalMessageCount} messages. Estimated input: ${metadata.estimatedInputTokens} tokens.`}
-        >
-          {metadata.sentMessageCount}/{metadata.canonicalMessageCount} msg · ~{metadata.estimatedInputTokens} tok
-        </span>
-      )}
-      {metadata?.engram?.compatibilityResult && (
-        <span
-          className="hidden rounded-full px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] sm:inline-flex"
+          className="hidden rounded-full min-h-9 items-center px-3 text-[9px] font-mono uppercase tracking-[0.16em] sm:inline-flex"
           style={{
             color: 'var(--secondary)',
             background: 'rgba(104,250,221,0.10)',
             border: '1px solid rgba(104,250,221,0.20)',
           }}
         >
-          {metadata.engram.simulated ? 'Simulated' : metadata.engram.compatibilityResult}
+          Simulated
         </span>
       )}
     </div>
@@ -442,8 +434,8 @@ function ConversationModeButton({
       role="radio"
       aria-checked={active}
       onClick={onClick}
-      className="relative rounded-full px-3 py-1.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] transition-colors"
-      style={{ color: active ? (stateful ? 'var(--secondary)' : 'var(--primary)') : 'var(--text-muted)' }}
+      className="relative rounded-full px-3 py-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em] transition-colors"
+      style={{ color: active ? (stateful ? '#005C4F' : '#004B78') : '#4A5668' }}
     >
       {active && (
         <motion.span

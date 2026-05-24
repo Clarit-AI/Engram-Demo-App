@@ -6,6 +6,7 @@ import { MobileGuidedComparison } from './components/MobileGuidedComparison';
 import { AppHeader } from './components/AppHeader';
 import { ConsentGate } from './components/ConsentGate';
 
+
 /**
  * App — root layout for the Clinical Futurist "Re-Read" build.
  *
@@ -19,10 +20,11 @@ import { ConsentGate } from './components/ConsentGate';
 export default function App() {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
+
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
+    <div className="flex h-full w-full flex-col overflow-hidden relative">
       <AppHeader mobile={!isDesktop} />
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 relative">
         {isDesktop ? <DesktopComparison /> : <MobileGuidedComparison />}
       </div>
       <StatefulReveal />
