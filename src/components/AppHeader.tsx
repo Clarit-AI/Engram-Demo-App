@@ -20,6 +20,7 @@ function formatModelName(model: string): string {
 export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
+  const setInferenceMode = useArcStore((s) => s.setInferenceMode);
   const resetArc = useArcStore((s) => s.resetArc);
   const setPhase = useArcStore((s) => s.setPhase);
   const setAppMode = useArcStore((s) => s.setAppMode);
@@ -28,19 +29,8 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
 
   const availabilityState = useArcStore((s) => s.availabilityState);
   const isStateful = inferenceMode === 'stateful';
+  const isLive = availabilityState === 'open';
   const currentModel = appMode === 'chat' ? DEFAULT_LIVE_MODEL : (activeDemo?.model || DEFAULT_LIVE_MODEL);
-
-  const availabilityLabel =
-    availabilityState === 'open' ? 'Live' :
-    availabilityState === 'code-required' ? 'Invite required' : 'Offline';
-  const availabilityColor =
-    availabilityState === 'open' ? 'rgba(0,200,100,0.12)' :
-    availabilityState === 'code-required' ? 'rgba(255,180,0,0.12)' :
-    'rgba(134,146,166,0.10)';
-  const availabilityBorder =
-    availabilityState === 'open' ? '1px solid rgba(0,200,100,0.28)' :
-    availabilityState === 'code-required' ? '1px solid rgba(255,180,0,0.28)' :
-    '1px solid rgba(134,146,166,0.18)';
 
   const handleReplay = () => {
     setAppMode('demo');
@@ -48,7 +38,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
     setPhase('intro');
   };
 
-  const handleActuallyChat = () => {
+  const handleLiveChat = () => {
     if (
       import.meta.env.VITE_DEV_BYPASS_AVAILABILITY !== 'true' &&
       availabilityState === 'offline'
@@ -70,6 +60,8 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
       }
     >
       <div className={mobile ? 'flex min-w-0 max-w-full flex-col gap-2 overflow-hidden' : 'relative flex items-center justify-between gap-5'}>
+
+        {/* Left: Brand logos + inference mode toggle */}
         <div className={mobile ? 'flex w-full min-w-0 items-center gap-3' : 'flex min-w-0 items-center gap-3'}>
           <BrandMark
             brand="clarit"
@@ -82,56 +74,56 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
             tone="primary"
             className={mobile ? 'h-[22px] w-[92px]' : 'h-[28px] w-[120px]'}
           />
-          {mobile && (
-            <div className="flex shrink-0 items-center gap-1.5">
-              <span className="font-mono text-[7px] uppercase tracking-[0.14em] text-text-muted">
-                By
-              </span>
-              <BrandMark brand="ovh" tone="primary" className="h-[10px] w-[62px]" />
-            </div>
-          )}
-          {/* Availability badge from main */}
+
+          {/* Stateless / Stateful toggle */}
           <div
-            className={[
-              'hidden flex-col rounded-full px-3 py-1.5 font-mono uppercase sm:inline-flex',
-              availabilityState === 'open' ? 'text-[#00c864]' : availabilityState === 'code-required' ? 'text-amber' : 'text-text-muted',
-            ].join(' ')}
+            className="flex items-center gap-0.5 rounded-3xl p-0.5"
+            role="radiogroup"
+            aria-label="Inference mode"
             style={{
-              background: availabilityColor,
-              border: availabilityBorder,
+              background: 'rgba(25,28,30,0.06)',
+              border: '1px solid rgba(25,28,30,0.12)',
             }}
           >
-            <span className="text-[6px] font-semibold tracking-[0.18em] opacity-60">
-              Demo
-            </span>
-            <span className="text-[8px] font-semibold tracking-[0.16em]">
-              {availabilityLabel}
-            </span>
-          </div>
-          {/* Current view pill - our version */}
-          <div
-            className="hidden flex-col rounded-full px-3 py-1.5 font-mono uppercase sm:inline-flex"
-            style={{
-              background: isStateful ? 'rgba(0,125,108,0.08)' : 'rgba(25,28,30,0.06)',
-              border: isStateful ? '1px solid rgba(0,125,108,0.22)' : '1px solid rgba(25,28,30,0.14)',
-              color: isStateful ? '#005C4F' : '#111827',
-            }}
-          >
-            <span className="text-[6px] font-bold tracking-[0.18em] opacity-80" style={{ color: isStateful ? '#007D6C' : '#4A5668' }}>
-              Current view
-            </span>
-            <span className="text-[8px] font-bold tracking-[0.16em]">
-              {isStateful ? 'With Engram' : 'Without Engram'}
-            </span>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!isStateful}
+              onClick={() => setInferenceMode('stateless')}
+              className="rounded-[20px] px-3.5 py-[7px] font-mono text-[8px] font-bold uppercase tracking-[0.12em] transition-all duration-200"
+              style={{
+                background: !isStateful ? '#00A1FF' : 'transparent',
+                color: !isStateful ? 'white' : '#8692A6',
+                boxShadow: !isStateful ? '0 1px 4px rgba(0,161,255,0.25)' : 'none',
+              }}
+            >
+              Stateless
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isStateful}
+              onClick={() => setInferenceMode('stateful')}
+              className="rounded-[20px] px-3.5 py-[7px] font-mono text-[8px] font-bold uppercase tracking-[0.12em] transition-all duration-200"
+              style={{
+                background: isStateful ? '#00A1FF' : 'transparent',
+                color: isStateful ? 'white' : '#8692A6',
+                boxShadow: isStateful ? '0 1px 4px rgba(0,161,255,0.25)' : 'none',
+              }}
+            >
+              Stateful
+            </button>
           </div>
         </div>
 
+        {/* Center: Powered by OVH (desktop only, absolute) */}
         {!mobile && (
           <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
             <PoweredByOvh />
           </div>
         )}
 
+        {/* Right: Optional env-gated controls + model chip + CTA group */}
         <div
           className={
             mobile
@@ -139,31 +131,10 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               : 'ml-auto flex min-w-0 items-center justify-end gap-2'
           }
         >
-          <button
-            type="button"
-            onClick={handleReplay}
-            className="sig-gradient min-h-9 rounded-full px-3.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Replay session
-          </button>
-          <button
-            type="button"
-            onClick={handleActuallyChat}
-            disabled={
-              import.meta.env.VITE_DEV_BYPASS_AVAILABILITY !== 'true' &&
-              availabilityState === 'offline'
-            }
-            className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors disabled:opacity-40"
-            style={{
-              background: appMode === 'chat' ? 'rgba(0,98,157,0.08)' : 'var(--surface-container-high)',
-              border: appMode === 'chat' ? '1px solid rgba(0,98,157,0.24)' : '1px solid rgba(25,28,30,0.16)',
-              color: appMode === 'chat' ? '#004B78' : '#111827',
-            }}
-          >
-            Actually chat
-          </button>
-
+          {/* Recording export — only rendered when VITE_ENABLE_RECORDING_EXPORT=true */}
           {!mobile && <RecordingExportControl />}
+
+          {/* Active model chip — desktop xl+ only */}
           {!mobile && (
             <div
               className="hidden min-h-9 items-center rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] xl:flex transition-colors"
@@ -178,7 +149,55 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               {formatModelName(currentModel)}
             </div>
           )}
+
+          {/* CTA group: gradient-bordered container */}
+          <div
+            className="flex items-center gap-2 rounded-3xl p-1"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0,161,255,0.08), rgba(238,25,174,0.08))',
+              border: '1.5px solid rgba(0,161,255,0.25)',
+              boxShadow: '0 2px 10px rgba(0,161,255,0.12)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleReplay}
+              className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg, #00A1FF, #EE19AE)' }}
+            >
+              Replay Session
+            </button>
+            <button
+              type="button"
+              onClick={handleLiveChat}
+              disabled={
+                import.meta.env.VITE_DEV_BYPASS_AVAILABILITY !== 'true' &&
+                availabilityState === 'offline'
+              }
+              className="flex min-h-9 items-center gap-1.5 rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] transition-colors disabled:opacity-40"
+              style={{
+                background: appMode === 'chat' ? 'rgba(0,98,157,0.08)' : 'white',
+                border: '1.5px solid rgba(0,161,255,0.3)',
+                color: '#00629D',
+              }}
+            >
+              {/* Availability indicator dot — visible when live, hidden when offline/invite-only */}
+              {isLive && (
+                <span
+                  className="block shrink-0 rounded-full"
+                  style={{
+                    width: '5px',
+                    height: '5px',
+                    background: '#00c864',
+                    boxShadow: '0 0 6px rgba(0,200,100,0.6)',
+                  }}
+                />
+              )}
+              Live Chat
+            </button>
+          </div>
         </div>
+
       </div>
     </header>
   );
