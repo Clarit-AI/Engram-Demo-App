@@ -93,6 +93,7 @@ export interface RateLimitMetadata {
   providerMode?: ProviderMode | LegacyProviderMode;
   queueDepth?: number;
   provisionState?: string;
+  statelessAvailable?: boolean;
 }
 
 export interface ChatProviderMetadata {
