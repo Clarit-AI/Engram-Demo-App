@@ -5,12 +5,13 @@ import { useArcStore } from '../store/arcStore';
 const MIN_TURNS = 1;
 
 /**
- * TimelineStrip — horizontal progress ticker of N turns.
- * Past turns: filled muted dot
- * Current turn: filled signal-blue dot with glow + spring-scale 1.35×
- * Future turns: ghost-bordered outline dot
+ * TimelineStrip — bottom progress ticker for the agent pane.
  *
- * The right edge carries the product copyright line.
+ * Playback uses the loaded demo's turn count; live chat grows with the
+ * conversation until the visual cap is reached. Past turns render as muted
+ * dots, the active turn renders as a glowing signal-blue dot, and future
+ * playback turns render as ghost outlines. The right edge carries the product
+ * copyright line.
  */
 export const TimelineStrip = memo(function TimelineStrip({ mobile = false }: { mobile?: boolean }) {
   const currentTurn = useArcStore((s) => s.currentTurn);
