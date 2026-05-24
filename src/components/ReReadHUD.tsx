@@ -77,7 +77,7 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
         <div className="flex min-w-0 items-center gap-2.5">
           <StateBadge mode={isStateful ? 'stateful' : 'stateless'} pane="agent" />
           <div
-            className="font-display text-[13px] font-semibold tracking-tight"
+            className="font-display text-[15px] font-bold tracking-tight"
             style={{ color: 'var(--on-surface-dark)' }}
           >
             What Agents See

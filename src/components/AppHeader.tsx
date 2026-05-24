@@ -148,18 +148,26 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
 
           {/* CTA group: gradient-bordered container */}
           <div
-            className="flex items-center gap-2 rounded-3xl p-1"
+            className="flex items-center gap-1 rounded-3xl p-1"
             style={{
               background: 'linear-gradient(135deg, rgba(0,161,255,0.08), rgba(238,25,174,0.08))',
               border: '1.5px solid rgba(0,161,255,0.25)',
               boxShadow: '0 2px 10px rgba(0,161,255,0.12)',
             }}
+            role="tablist"
+            aria-label="Demo mode"
           >
             <button
               type="button"
               onClick={handleReplay}
-              className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #00A1FF, #EE19AE)' }}
+              className="relative min-h-9 rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: appMode === 'chat' ? 'white' : 'linear-gradient(135deg, #00A1FF, #EE19AE)',
+                border: appMode === 'chat' ? '1.5px solid rgba(0,161,255,0.3)' : '1.5px solid transparent',
+                color: appMode === 'chat' ? '#00629D' : 'white',
+              }}
+              role="tab"
+              aria-selected={appMode !== 'chat'}
             >
               Replay Session
             </button>
@@ -170,12 +178,14 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
                 import.meta.env.VITE_DEV_BYPASS_AVAILABILITY !== 'true' &&
                 availabilityState === 'offline'
               }
-              className="flex min-h-9 items-center gap-1.5 rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] transition-colors disabled:opacity-40"
+              className="relative flex min-h-9 items-center gap-1.5 rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] transition-transform disabled:opacity-40 hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                background: appMode === 'chat' ? 'rgba(0,98,157,0.08)' : 'white',
-                border: '1.5px solid rgba(0,161,255,0.3)',
-                color: '#00629D',
+                background: appMode === 'chat' ? 'linear-gradient(135deg, #00A1FF, #EE19AE)' : 'white',
+                border: appMode === 'chat' ? '1.5px solid transparent' : '1.5px solid rgba(0,161,255,0.3)',
+                color: appMode === 'chat' ? 'white' : '#00629D',
               }}
+              role="tab"
+              aria-selected={appMode === 'chat'}
             >
               {/* Availability indicator dot — visible when live, hidden when offline/invite-only */}
               {isLive && (
@@ -189,7 +199,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
                   }}
                 />
               )}
-              Live Chat
+              Chat Live
             </button>
           </div>
         </div>

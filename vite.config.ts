@@ -74,6 +74,13 @@ function serverRecordingExportEnabled(env: ChatServerEnv): boolean {
   return env.RECORDING_EXPORT_SERVER_ENABLED === 'true';
 }
 
+function publicStatelessProvider(value: unknown): string {
+  const provider = typeof value === 'string' ? value.toLowerCase() : '';
+  if (provider === 'nvidia' || provider === 'nvidia-nim' || provider === 'nim') return 'nvidia-nim';
+  if (provider === 'openrouter') return 'openrouter';
+  return '';
+}
+
 function sanitizeFilename(value: unknown): string {
   const candidate = typeof value === 'string' ? value : 'simulation-playback.json';
   const base = path.basename(candidate).replace(/[^a-zA-Z0-9._-]/g, '-');
@@ -120,6 +127,9 @@ export default defineConfig(({ mode }) => {
   } as ChatServerEnv;
 
   return {
+    define: {
+      'import.meta.env.VITE_STATELESS_PROVIDER': JSON.stringify(publicStatelessProvider(serverEnv.STATELESS_PROVIDER)),
+    },
     optimizeDeps: {
       include: ['ovh', 'better-sqlite3'],
     },
@@ -147,7 +157,6 @@ export default defineConfig(({ mode }) => {
             return async (
               req: import('node:http').IncomingMessage,
               res: import('node:http').ServerResponse,
-              next: () => void,
             ) => {
               try {
                 await handler(req, res);

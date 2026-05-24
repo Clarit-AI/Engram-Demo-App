@@ -301,6 +301,15 @@ h1,h2,h3,.font-display {
   background: var(--text-muted);
 }
 
+.agent-re-read-badge {
+  animation: agent-re-read-pulse 2s ease-in-out 3;
+}
+
+@keyframes agent-re-read-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.12); }
+}
+
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -324,6 +333,7 @@ h1,h2,h3,.font-display {
 }
 @media (prefers-reduced-motion: reduce) {
   .clarity-flash, .clarity-flash body { animation: none; }
+  .agent-re-read-badge { animation: none; }
 }
 
 /* ============================================================

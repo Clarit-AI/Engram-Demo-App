@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useArcStore, type ArcPhase } from '../store/arcStore';
 import { useChatStore } from '../store/chatStore';
 import {
@@ -500,12 +500,23 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
           }
           style={{ transformOrigin: 'top left' }}
         >
-          <AgentInboxStage
-            bundles={inboxModel.bundles}
-            responses={inboxResponses}
-            readProgress={scanProgress}
-            humanTyping={phase === 'composing'}
-          />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={`agent-${appMode}`}
+              className="h-full"
+              initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <AgentInboxStage
+                bundles={inboxModel.bundles}
+                responses={inboxResponses}
+                readProgress={scanProgress}
+                humanTyping={phase === 'composing'}
+              />
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       )}
 

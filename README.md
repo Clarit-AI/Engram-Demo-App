@@ -1,73 +1,53 @@
-# React + TypeScript + Vite
+# Clarit.ai Demo Chat
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interactive demo chat application for comparing what the agent sends to the
+model with what the human sees in the chat surface. The frontend is React,
+TypeScript, Tailwind, and Vite. The local backend is mounted through Vite
+middleware and handles provider routing, session admission, vouchers, recording,
+and schedule/provisioning support.
 
-Currently, two official plugins are available:
+## Local Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app defaults to `http://127.0.0.1:5173/` when Vite uses its standard port.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Copy `.env.example` to `.env.local` and set only the values needed for the
+provider or feature path being tested. The local file is expected to be sparse:
+most settings have code defaults or are only needed for specific optional
+systems.
+
+Common local provider settings:
+
+- `STATELESS_PROVIDER=nvidia`
+- `NVIDIA_NIM_API_KEY=...`
+- `NVIDIA_NIM_MODEL=...`
+- `OPENROUTER_API_KEY=...`
+- `DEFAULT_STATELESS_MODEL=...`
+- `VITE_DEFAULT_MODEL=...`
+
+Full references:
+
+- [Backend systems](docs/backend-systems.md)
+- [Environment variables](docs/env.md)
+- [Dev mode](docs/dev-mode.md)
+
+## Scripts
+
+```bash
+npm run dev      # start Vite dev server
+npm run lint     # run ESLint
+npm run build    # type-check and build
+npm run preview  # preview built output
 ```
+
+## Notes
+
+The current provider routing is configuration-selected. `STATELESS_PROVIDER`
+chooses NVIDIA NIM or OpenRouter-compatible behavior, but the chat stream does
+not automatically retry another provider after a runtime provider failure.
