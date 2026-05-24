@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { motion } from 'framer-motion';
 import { useArcStore } from '../store/arcStore';
 import { useChatStore } from '../store/chatStore';
 import { BrandMark, PoweredByOvh } from './BrandMark';
@@ -85,34 +86,30 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               border: '1px solid rgba(25,28,30,0.12)',
             }}
           >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={!isStateful}
-              onClick={() => setInferenceMode('stateless')}
-              className="rounded-[20px] px-3.5 py-[7px] font-mono text-[8px] font-bold uppercase tracking-[0.12em] transition-all duration-200"
-              style={{
-                background: !isStateful ? '#00A1FF' : 'transparent',
-                color: !isStateful ? 'white' : '#8692A6',
-                boxShadow: !isStateful ? '0 1px 4px rgba(0,161,255,0.25)' : 'none',
-              }}
-            >
-              Stateless
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={isStateful}
-              onClick={() => setInferenceMode('stateful')}
-              className="rounded-[20px] px-3.5 py-[7px] font-mono text-[8px] font-bold uppercase tracking-[0.12em] transition-all duration-200"
-              style={{
-                background: isStateful ? '#00A1FF' : 'transparent',
-                color: isStateful ? 'white' : '#8692A6',
-                boxShadow: isStateful ? '0 1px 4px rgba(0,161,255,0.25)' : 'none',
-              }}
-            >
-              Stateful
-            </button>
+            {(['stateless', 'stateful'] as const).map((mode) => {
+              const active = inferenceMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setInferenceMode(mode)}
+                  className="relative rounded-[20px] px-3.5 py-[7px] font-mono text-[8px] font-bold uppercase tracking-[0.12em]"
+                  style={{ color: active ? 'white' : '#8692A6', transition: 'color 0.2s ease' }}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="inference-toggle-pill"
+                      className="absolute inset-0 rounded-[20px]"
+                      style={{ background: '#00A1FF', boxShadow: '0 1px 4px rgba(0,161,255,0.25)' }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative">{mode}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
