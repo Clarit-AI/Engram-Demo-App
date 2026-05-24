@@ -378,8 +378,12 @@ function buildRateLimitMetadata(
   session: SessionRecord,
   config: RateLimitConfig,
   now: number,
+  env?: import('./types').ChatServerEnv,
 ): RateLimitMetadata {
   const provState = getProvisionState();
+  const statelessAvailable = !!(
+    env?.OPENROUTER_API_KEY?.trim() || env?.NVIDIA_NIM_API_KEY?.trim()
+  );
   return {
     enabled: config.enabled,
     activeSessions: activeSessionCount(now, config),
@@ -391,6 +395,7 @@ function buildRateLimitMetadata(
     maxGlobalConcurrent: config.maxGlobalConcurrentGenerations,
     queueDepth: dbQueueCount(),
     provisionState: provState.state,
+    statelessAvailable,
   };
 }
 
@@ -470,7 +475,7 @@ export async function reserveChatCapacity(
       code,
       retryAfterSeconds,
       session: sessionMeta,
-      rateLimit: buildRateLimitMetadata(session, config, now),
+      rateLimit: buildRateLimitMetadata(session, config, now, env),
     },
     headers: {
       ...headers,
@@ -479,7 +484,7 @@ export async function reserveChatCapacity(
   });
 
   if (!config.enabled) {
-    const metadata = buildRateLimitMetadata(session, config, now);
+    const metadata = buildRateLimitMetadata(session, config, now, env);
     return {
       ok: true,
       session,
@@ -567,7 +572,7 @@ export async function reserveChatCapacity(
   bucket.requestTimestamps.push(now);
 
   const metadata = {
-    ...buildRateLimitMetadata(session, config, now),
+    ...buildRateLimitMetadata(session, config, now, env),
     estimatedInputTokens,
     providerMode: body.mode,
     queueDepth: dbQueueCount(),
@@ -627,7 +632,7 @@ export async function handleSessionRequest(
 
   const now = Date.now();
   const { session, setCookie, config } = ensureSession(request, env);
-  const metadata = buildRateLimitMetadata(session, config, now);
+  const metadata = buildRateLimitMetadata(session, config, now, env);
 
   return jsonResponse(
     {

@@ -17,7 +17,11 @@ function envText(name: string, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-function mapProvisionToAvailability(provisionState: string | undefined): 'offline' | 'open' | 'code-required' {
+function mapProvisionToAvailability(
+  provisionState: string | undefined,
+  statelessAvailable: boolean | undefined,
+): 'offline' | 'open' | 'code-required' {
+  if (statelessAvailable) return 'open';
   switch (provisionState) {
     case 'running':
       return 'open';
@@ -43,7 +47,7 @@ export function ConsentGate() {
   // Keep arcStore.availabilityState in sync with the live provision state from the session heartbeat.
   useEffect(() => {
     if (rateLimit) {
-      setAvailabilityState(mapProvisionToAvailability(rateLimit.provisionState));
+      setAvailabilityState(mapProvisionToAvailability(rateLimit.provisionState, rateLimit.statelessAvailable));
     }
   }, [rateLimit, setAvailabilityState]);
 
