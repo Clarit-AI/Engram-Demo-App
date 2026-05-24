@@ -64,16 +64,10 @@ function withEngramSystemPrompt(messages: ChatMessageInput[]): ChatMessageInput[
 }
 
 function latestUserOnly(messages: ChatMessageInput[]): ChatMessageInput[] {
-  const latestUser = [...messages].reverse().find((message) => message.role === 'user');
+  const systemMessages = messages.filter((m) => m.role === 'system');
+  const latestUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!latestUser) return [];
-
-  const firstSystem = messages.find((message) => message.role === 'system');
-  return firstSystem
-    ? [
-        { role: 'system', content: firstSystem.content },
-        { role: 'user', content: latestUser.content },
-      ]
-    : [{ role: 'user', content: latestUser.content }];
+  return [...systemMessages, { role: 'user', content: latestUser.content }];
 }
 
 function createOpenRouterClient(env: ChatServerEnv, origin: string) {
