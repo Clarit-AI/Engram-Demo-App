@@ -3,6 +3,7 @@ import { useArcStore } from '../store/arcStore';
 import * as CookieConsent from '@gothassos/vanilla-cookieconsent';
 import '@gothassos/vanilla-cookieconsent/dist/cookieconsent.css';
 import { useDemoSessionHeartbeat } from '../hooks/useDemoSessionHeartbeat';
+import { useSessionStore } from '../store/sessionStore';
 
 const CONSENT_COOKIE_NAME = 'ngram_demo_consent';
 const CONSENT_EVENT = 'clarit:cookie-consent';
@@ -16,11 +17,35 @@ function envText(name: string, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
+function mapProvisionToAvailability(provisionState: string | undefined): 'offline' | 'open' | 'code-required' {
+  switch (provisionState) {
+    case 'running':
+      return 'open';
+    case 'provisioning':
+    case 'terminating':
+      return 'code-required';
+    case 'none':
+    case 'error':
+    default:
+      return 'offline';
+  }
+}
+
 
 export function ConsentGate() {
   const consented = useArcStore((s) => s.consented);
   const setConsented = useArcStore((s) => s.setConsented);
+  const setAvailabilityState = useArcStore((s) => s.setAvailabilityState);
   useDemoSessionHeartbeat(consented);
+
+  const rateLimit = useSessionStore((s) => s.rateLimit);
+
+  // Keep arcStore.availabilityState in sync with the live provision state from the session heartbeat.
+  useEffect(() => {
+    if (rateLimit) {
+      setAvailabilityState(mapProvisionToAvailability(rateLimit.provisionState));
+    }
+  }, [rateLimit, setAvailabilityState]);
 
   useEffect(() => {
     const markConsented = () => setConsented(true);

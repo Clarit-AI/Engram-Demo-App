@@ -42,6 +42,7 @@ export function RecordingExportControl() {
       recordingTurns,
       model: DEFAULT_LIVE_MODEL,
       mode: inferenceMode,
+      recordingMode: inferenceMode,
       title: exportTitle,
     });
 

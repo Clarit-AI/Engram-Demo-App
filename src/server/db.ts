@@ -15,18 +15,20 @@ export function getDb(): DbInstance {
 }
 
 export function initDb(dbPath?: string): void {
-  const p = dbPath ?? './data/sessions.db';
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const path = require('node:path');
-  const dir = path.dirname(p);
-  if (dir && dir !== '.') {
+  if (_db) return;
+  try {
+    const p = dbPath ?? './data/sessions.db';
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { mkdirSync } = require('node:fs');
-    mkdirSync(dir, { recursive: true });
-  }
-  _db = new Database(p);
-  _db.pragma('journal_mode = WAL');
-  _db.pragma('foreign_keys = ON');
+    const path = require('node:path');
+    const dir = path.dirname(p);
+    if (dir && dir !== '.') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { mkdirSync } = require('node:fs');
+      mkdirSync(dir, { recursive: true });
+    }
+    _db = new Database(p);
+    _db.pragma('journal_mode = WAL');
+    _db.pragma('foreign_keys = ON');
 
   _db.exec(`
     CREATE TABLE IF NOT EXISTS queue_entries (
@@ -50,6 +52,12 @@ export function initDb(dbPath?: string): void {
       updated_at  INTEGER NOT NULL
     );
   `);
+  } catch {
+    // Database unavailable (e.g. missing native module on unsupported platforms).
+    // Intentionally silent — getDb() throws on access, isolating the failure.
+    _db = null;
+    return;
+  }
 }
 
 // ─── Priority rank mapping ───────────────────────────────────────────────────

@@ -169,7 +169,12 @@ export default defineConfig(({ mode }) => {
           initScheduleFromEnv(serverEnv);
           parseInviteCodes(serverEnv.INVITE_CODES);
           initDb();
-          initProvisionStateFromDb();
+          try {
+            initProvisionStateFromDb();
+          } catch {
+            // Provision state unavailable (e.g. missing native module) — non-fatal
+            // and intentionally silent to avoid noisy dev-server startup failures.
+          }
         },
       },
     ],

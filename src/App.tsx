@@ -5,6 +5,7 @@ import { StatefulReveal } from './components/StatefulReveal';
 import { MobileGuidedComparison } from './components/MobileGuidedComparison';
 import { AppHeader } from './components/AppHeader';
 import { ConsentGate } from './components/ConsentGate';
+import { DeveloperMenu } from './components/DeveloperMenu';
 
 
 /**
@@ -29,6 +30,7 @@ export default function App() {
       </div>
       <StatefulReveal />
       <ConsentGate />
+      <DeveloperMenu />
     </div>
   );
 }
