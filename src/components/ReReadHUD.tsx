@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { useArcStore } from '../store/arcStore';
+import { StateBadge } from './StateBadge';
 import {
   computeTurnMetrics,
   computeSessionMetrics,
@@ -73,25 +74,13 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
   return (
     <div className={mobile ? 'absolute left-3 right-3 top-3 z-20 pointer-events-none' : 'absolute left-8 right-8 top-4 z-20 pointer-events-none'}>
       <div className={mobile ? 'glass-chip-dark flex items-center justify-between gap-3 rounded-2xl px-4 py-3 ambient-shadow-dark' : 'glass-chip-dark flex items-center justify-between gap-5 rounded-2xl px-5 py-3 ambient-shadow-dark'}>
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className="h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ background: isStateful ? 'var(--secondary-container)' : 'var(--burn-500)' }}
-          />
-          <div className="min-w-0">
-            <div
-              className="font-display text-[13px] font-semibold tracking-tight"
-              style={{ color: 'var(--on-surface-dark)' }}
-            >
-              What Agents See
-            </div>
-            <div
-              className="truncate text-[9px] font-mono uppercase tracking-[0.14em]"
-              style={{ color: 'var(--on-surface-dark-faint)' }}
-              title={activeDemo.title}
-            >
-              {activeDemo.title}
-            </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <StateBadge mode={isStateful ? 'stateful' : 'stateless'} pane="agent" />
+          <div
+            className="font-display text-[13px] font-semibold tracking-tight"
+            style={{ color: 'var(--on-surface-dark)' }}
+          >
+            What Agents See
           </div>
         </div>
 
@@ -117,8 +106,6 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
           </div>
           {!mobile && (
             <>
-              <MetricNumber label="Total" value={metrics.session.totalTokens} suffix=" tok" />
-              <MetricNumber label="Pages" value={metrics.session.totalPages} decimals={1} />
               <MetricNumber
                 label="Cost"
                 value={metrics.session.totalCostUsd}
@@ -128,18 +115,6 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
                 accent
               />
             </>
-          )}
-          {isStateful && (
-            <span
-              className="rounded-full px-2 py-0.5 text-[8px] font-mono uppercase tracking-[0.18em] font-semibold"
-              style={{
-                background: 'rgba(104, 250, 221, 0.16)',
-                color: 'var(--secondary-container)',
-                border: '1px solid rgba(104, 250, 221, 0.32)',
-              }}
-            >
-              Stateful
-            </span>
           )}
         </div>
       </div>

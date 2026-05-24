@@ -8,6 +8,7 @@ import { capDemoToTurns, loadDemo } from '../services/demoLibrary';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ThinkingDots } from './ThinkingDots';
+import { StateBadge } from './StateBadge';
 
 /**
  * ChatPanel — Clinical Futurist light-side conversation surface.
@@ -33,7 +34,6 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
   const phase = useArcStore((s) => s.phase);
   const appMode = useArcStore((s) => s.appMode);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
-  const setInferenceMode = useArcStore((s) => s.setInferenceMode);
   const streamedChars = useArcStore((s) => s.streamedChars);
   const responseBoundary = useArcStore((s) => s.responseBoundary);
   const catalog = useArcStore((s) => s.catalog);
@@ -54,7 +54,6 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const isChat = appMode === 'chat';
-  const isStateful = inferenceMode === 'stateful';
   const selectedDemo = catalog.find((demo) => demo.key === activeDemoKey);
 
   useEffect(() => {
@@ -165,15 +164,13 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
               : 'glass-chip flex flex-col gap-2 rounded-2xl px-4 py-3 ambient-shadow xl:flex-row xl:items-center xl:justify-between xl:gap-3'
           }
         >
-          <div className="min-w-0 shrink-0">
+          <div className="min-w-0 shrink-0 flex items-center gap-2.5">
+            <StateBadge mode={inferenceMode} pane="human" />
             <div
               className="font-display text-[13px] font-semibold tracking-tight"
               style={{ color: 'var(--on-surface)' }}
             >
               What Humans See
-            </div>
-            <div className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
-              Clean user view
             </div>
           </div>
 
@@ -184,20 +181,6 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
                 : 'no-scrollbar flex w-full min-w-0 items-center gap-2 overflow-x-auto pb-0.5 xl:w-auto xl:justify-end xl:overflow-visible xl:pb-0'
             }
           >
-            <div
-              className="flex min-h-9 shrink-0 items-center rounded-full p-0.5"
-              role="radiogroup"
-              aria-label="Inference mode"
-              style={{ background: 'var(--surface-container)' }}
-            >
-              <ConversationModeButton active={!isStateful} onClick={() => setInferenceMode('stateless')}>
-                Stateless
-              </ConversationModeButton>
-              <ConversationModeButton active={isStateful} stateful onClick={() => setInferenceMode('stateful')}>
-                Stateful
-              </ConversationModeButton>
-            </div>
-
             {appMode === 'demo' ? (
               <div className="relative min-w-0 shrink-0" ref={menuRef}>
                 <button
@@ -414,37 +397,5 @@ function LiveProviderChips({
         </span>
       )}
     </div>
-  );
-}
-
-function ConversationModeButton({
-  active,
-  stateful = false,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  stateful?: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className="relative rounded-full px-3 py-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em] transition-colors"
-      style={{ color: active ? (stateful ? '#005C4F' : '#004B78') : '#4A5668' }}
-    >
-      {active && (
-        <motion.span
-          layoutId="conversation-mode-pill"
-          className="absolute inset-0 rounded-full bg-surface-container-lowest shadow-[0_8px_20px_-16px_rgba(25,28,30,0.45)]"
-          transition={{ type: 'spring', stiffness: 360, damping: 32 }}
-        />
-      )}
-      <span className="relative">{children}</span>
-    </button>
   );
 }
