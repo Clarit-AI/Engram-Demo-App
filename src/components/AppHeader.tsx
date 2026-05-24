@@ -29,7 +29,6 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
   const activeDemo = useArcStore((s) => s.activeDemo);
 
   const availabilityState = useArcStore((s) => s.availabilityState);
-  const isStateful = inferenceMode === 'stateful';
   const isLive = availabilityState === 'open';
   const currentModel = appMode === 'chat' ? DEFAULT_LIVE_MODEL : (activeDemo?.model || DEFAULT_LIVE_MODEL);
 
