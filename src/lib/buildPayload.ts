@@ -158,5 +158,5 @@ export function makeContextId(seed: string): string {
     h = (h * 31 + seed.charCodeAt(i)) | 0;
   }
   const hex = Math.abs(h).toString(16).padStart(8, '0').slice(0, 8);
-  return `ctx_${hex}`;
+  return `snap_${hex}`;
 }

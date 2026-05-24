@@ -104,7 +104,7 @@ export function buildStatefulAgentRequestBundle(
     {
       id: `context-${contextId}`,
       role: 'context',
-      label: 'cached conversation pointer',
+      label: 'snapshot pointer',
       content: contextId,
       tokenCount: estimateRequestTokens(contextId) + 8,
       isDelta: false,

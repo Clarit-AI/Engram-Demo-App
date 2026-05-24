@@ -1,36 +1,84 @@
-import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { memo, useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useArcStore } from '../store/arcStore';
 import { useChatStore } from '../store/chatStore';
 import { BrandMark, PoweredByOvh } from './BrandMark';
 import { RecordingExportControl } from './RecordingExportControl';
 import { DEFAULT_LIVE_MODEL } from '../services/inferenceProvider';
+import { loadDemo, capDemoToTurns } from '../services/demoLibrary';
 
 function formatModelName(model: string): string {
   if (!model) return '';
-  if (model.includes('nemotron')) {
-    return 'Nemotron 3 Omni';
+  const basename = (model.split('/').pop() ?? model).toLowerCase();
+
+  if (basename.includes('nemotron')) {
+    // Detect named variant first (order matters — check longer names first)
+    const variants = ['elastic', 'super', 'ultra', 'omni', 'nano', 'mini'] as const;
+    for (const v of variants) {
+      if (basename.includes(v)) {
+        return `Nemotron 3 ${v.charAt(0).toUpperCase()}${v.slice(1)}`;
+      }
+    }
+    // Fall back to size if no named variant
+    const sizeMatch = basename.match(/(\d+b)/);
+    return sizeMatch ? `Nemotron ${sizeMatch[1].toUpperCase()}` : 'Nemotron 3';
   }
-  const parts = model.split('/');
-  const name = parts[parts.length - 1];
-  return name
+
+  // Generic: title-case the basename, cap at 22 chars
+  const name = basename
     .replace(/[-_]/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
+  return name.length > 22 ? `${name.slice(0, 21)}…` : name;
 }
 
 export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
-  const inferenceMode = useArcStore((s) => s.inferenceMode);
-  const setInferenceMode = useArcStore((s) => s.setInferenceMode);
   const resetArc = useArcStore((s) => s.resetArc);
   const setPhase = useArcStore((s) => s.setPhase);
   const setAppMode = useArcStore((s) => s.setAppMode);
   const setTurn = useArcStore((s) => s.setTurn);
   const activeDemo = useArcStore((s) => s.activeDemo);
+  const currentTurn = useArcStore((s) => s.currentTurn);
+  const catalog = useArcStore((s) => s.catalog);
+  const activeDemoKey = useArcStore((s) => s.activeDemoKey);
+  const setActiveDemo = useArcStore((s) => s.setActiveDemo);
+  const turnsCap = useArcStore((s) => s.turnsCap);
+
+  const [demoMenuOpen, setDemoMenuOpen] = useState(false);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!demoMenuOpen) return;
+    const onDown = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setDemoMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [demoMenuOpen]);
+
+  const handleSelectDemo = async (key: string) => {
+    if (key === activeDemoKey) { setDemoMenuOpen(false); return; }
+    setLoadingKey(key);
+    const demo = await loadDemo(key);
+    setLoadingKey(null);
+    setDemoMenuOpen(false);
+    if (!demo) return;
+    const capped = capDemoToTurns(demo.messages, turnsCap);
+    setAppMode('demo');
+    setActiveDemo(key, { ...demo, messages: capped, turnCount: capped.filter((m) => m.role === 'user').length });
+  };
+
+
+  const lastChatMetadata = useChatStore((s) => s.lastMetadata);
 
   const availabilityState = useArcStore((s) => s.availabilityState);
   const isLive = availabilityState === 'open';
-  const currentModel = appMode === 'chat' ? DEFAULT_LIVE_MODEL : (activeDemo?.model || DEFAULT_LIVE_MODEL);
+  const currentModel = appMode === 'chat'
+    ? (lastChatMetadata?.model ?? DEFAULT_LIVE_MODEL)
+    : (activeDemo?.model ?? DEFAULT_LIVE_MODEL);
 
   const handleReplay = () => {
     setAppMode('demo');
@@ -75,40 +123,18 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
             className={mobile ? 'h-[22px] w-[92px]' : 'h-[28px] w-[120px]'}
           />
 
-          {/* Stateless / Stateful toggle */}
+          {/* Model identifier pill */}
           <div
-            className="flex items-center gap-0.5 rounded-3xl p-0.5"
-            role="radiogroup"
-            aria-label="Inference mode"
+            className="flex min-h-8 items-center rounded-full px-3 font-mono text-[9px] font-bold uppercase tracking-[0.14em] transition-colors"
+            title={`Active model: ${currentModel}`}
             style={{
-              background: 'rgba(25,28,30,0.06)',
-              border: '1px solid rgba(25,28,30,0.12)',
+              background: 'rgba(25, 28, 30, 0.06)',
+              border: '1px solid rgba(25, 28, 30, 0.14)',
+              color: '#111827',
             }}
           >
-            {(['stateless', 'stateful'] as const).map((mode) => {
-              const active = inferenceMode === mode;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setInferenceMode(mode)}
-                  className="relative rounded-[20px] px-3.5 py-[7px] font-mono text-[8px] font-bold uppercase tracking-[0.12em]"
-                  style={{ color: active ? 'white' : '#8692A6', transition: 'color 0.2s ease' }}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="inference-toggle-pill"
-                      className="absolute inset-0 rounded-[20px]"
-                      style={{ background: '#00A1FF', boxShadow: '0 1px 4px rgba(0,161,255,0.25)' }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative">{mode}</span>
-                </button>
-              );
-            })}
+            <span className="mr-1.5 font-sans lowercase font-semibold opacity-75" style={{ color: '#4A5668' }}>model</span>
+            {formatModelName(currentModel)}
           </div>
         </div>
 
@@ -127,24 +153,90 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               : 'ml-auto flex min-w-0 items-center justify-end gap-2'
           }
         >
-          {/* Recording export — only rendered when VITE_ENABLE_RECORDING_EXPORT=true */}
-          {!mobile && <RecordingExportControl />}
-
-          {/* Active model chip — desktop xl+ only */}
+          {/* Choose Conversation — always visible; disabled in chat mode with tooltip */}
           {!mobile && (
-            <div
-              className="hidden min-h-9 items-center rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] xl:flex transition-colors"
-              title={`Active model: ${currentModel}`}
-              style={{
-                background: 'rgba(25, 28, 30, 0.06)',
-                border: '1px solid rgba(25, 28, 30, 0.14)',
-                color: '#111827',
-              }}
-            >
-              <span className="mr-1.5 font-sans lowercase font-semibold opacity-75" style={{ color: '#4A5668' }}>model</span>
-              {formatModelName(currentModel)}
+            <div className="group relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => appMode === 'demo' && setDemoMenuOpen((v) => !v)}
+                disabled={appMode !== 'demo'}
+                className="flex min-h-9 max-w-[220px] items-center gap-1.5 rounded-full px-3 font-mono text-[9px] font-bold uppercase tracking-[0.16em] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                style={{
+                  background: 'var(--primary)',
+                  border: '1px solid rgba(0,98,157,0.24)',
+                  color: '#FFFFFF',
+                }}
+                aria-haspopup="listbox"
+                aria-expanded={appMode === 'demo' ? demoMenuOpen : undefined}
+                title={undefined}
+              >
+                <span className="truncate">Choose conversation</span>
+                <span className="text-[8px] opacity-75" aria-hidden>v</span>
+              </button>
+
+              {/* Custom tooltip — only in chat mode */}
+              {appMode === 'chat' && (
+                <div
+                  className="pointer-events-none absolute right-0 top-full z-50 mt-2 w-56 rounded-xl px-3 py-2 text-[11px] leading-snug opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+                  style={{
+                    background: 'rgba(16,27,40,0.93)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'rgba(255,255,255,0.82)',
+                    backdropFilter: 'blur(8px)',
+                  }}
+                >
+                  You&apos;re in live chat mode. Switch to playback to choose a conversation.
+                </div>
+              )}
+              <AnimatePresence>
+                {demoMenuOpen && (
+                  <motion.ul
+                    role="listbox"
+                    className="absolute right-0 top-full z-50 mt-2 min-w-[260px] max-w-[calc(100vw-2rem)] rounded-2xl bg-surface-container-lowest py-2 ambient-shadow"
+                    style={{ border: '1px solid rgba(25,28,30,0.10)' }}
+                    initial={{ y: -4, opacity: 0, scale: 0.98 }}
+                    animate={{ y: 0, opacity: 1, scale: 1 }}
+                    exit={{ y: -4, opacity: 0, scale: 0.98 }}
+                    transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                  >
+                    {catalog.map((demo) => {
+                      const active = demo.key === activeDemoKey;
+                      const loading = loadingKey === demo.key;
+                      return (
+                        <li key={demo.key} role="option" aria-selected={active}>
+                          <button
+                            type="button"
+                            onClick={() => void handleSelectDemo(demo.key)}
+                            disabled={loading}
+                            className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left transition-colors hover:bg-black/[0.035] disabled:opacity-50"
+                          >
+                            <span className="min-w-0">
+                              <span
+                                className="block truncate font-mono text-[11px]"
+                                style={{ color: active ? 'var(--primary)' : 'var(--on-surface)' }}
+                                title={demo.title}
+                              >
+                                {demo.title}
+                              </span>
+                              <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted">
+                                {demo.turnCount} turns - {demo.model.split('/').pop()}
+                              </span>
+                            </span>
+                            <span className="font-mono text-[10px] text-primary">
+                              {loading ? '...' : active ? '*' : ''}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
             </div>
           )}
+
+          {/* Recording export — only rendered when VITE_ENABLE_RECORDING_EXPORT=true */}
+          {!mobile && <RecordingExportControl />}
 
           {/* CTA group: gradient-bordered container */}
           <div
@@ -169,7 +261,22 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               role="tab"
               aria-selected={appMode !== 'chat'}
             >
-              Replay Session
+              <span className="relative inline-flex items-center justify-center">
+                {/* invisible sizer — locks width to the longer string */}
+                <span className="invisible whitespace-nowrap">Replay Session</span>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={appMode === 'demo' && currentTurn >= 3 ? 'replay' : 'playback'}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute whitespace-nowrap"
+                  >
+                    {appMode === 'demo' && currentTurn >= 3 ? 'Replay Session' : 'Playback Mode'}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
             </button>
             <button
               type="button"

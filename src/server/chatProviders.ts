@@ -19,7 +19,11 @@ import type {
   ChatServerEnv,
   ProviderMode,
 } from './types';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join, dirname } from 'node:path';
 import type { StatelessProviderName } from './env';
+import { getEngramHealth, recordEngramSuccess, recordEngramFailure } from './engramHealth';
 
 export interface PreparedChatStream {
   textStream: AsyncIterable<string>;
@@ -35,17 +39,35 @@ function estimateMessagesTokens(messages: ChatMessageInput[]): number {
   return messages.reduce((sum, message) => sum + estimateTokens(message.content), 0);
 }
 
-function latestUserOnly(messages: ChatMessageInput[]): ChatMessageInput[] {
-  const latestUser = [...messages].reverse().find((message) => message.role === 'user');
-  if (!latestUser) return [];
+function loadEngramSystemPrompt(): string {
+  try {
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const raw = readFileSync(join(dir, 'prompts.json'), 'utf8');
+    const config = JSON.parse(raw) as { engram?: { systemPrompt?: string } };
+    const prompt = config.engram?.systemPrompt;
+    if (typeof prompt === 'string' && prompt.length > 0) return prompt;
+  } catch {
+    // fall through to default
+  }
+  return (
+    'You are a helpful AI assistant. Respond directly and concisely. ' +
+    'Do not narrate your reasoning process, restate the question, or explain what you are about to do. ' +
+    'Just answer.'
+  );
+}
 
-  const firstSystem = messages.find((message) => message.role === 'system');
-  return firstSystem
-    ? [
-        { role: 'system', content: firstSystem.content },
-        { role: 'user', content: latestUser.content },
-      ]
-    : [{ role: 'user', content: latestUser.content }];
+const ENGRAM_SYSTEM_PROMPT = loadEngramSystemPrompt();
+
+function withEngramSystemPrompt(messages: ChatMessageInput[]): ChatMessageInput[] {
+  if (messages.some((m) => m.role === 'system')) return messages;
+  return [{ role: 'system', content: ENGRAM_SYSTEM_PROMPT }, ...messages];
+}
+
+function latestUserOnly(messages: ChatMessageInput[]): ChatMessageInput[] {
+  const systemMessages = messages.filter((m) => m.role === 'system');
+  const latestUser = [...messages].reverse().find((m) => m.role === 'user');
+  if (!latestUser) return [];
+  return [...systemMessages, { role: 'user', content: latestUser.content }];
 }
 
 function createOpenRouterClient(env: ChatServerEnv, origin: string) {
@@ -181,6 +203,23 @@ export function extractEngramMetadata(
   };
 }
 
+async function* watchedStream(src: AsyncIterable<string>): AsyncIterable<string> {
+  let gotChunk = false;
+  try {
+    for await (const chunk of src) {
+      if (!gotChunk) {
+        recordEngramSuccess();
+        gotChunk = true;
+      }
+      yield chunk;
+    }
+    if (!gotChunk) recordEngramSuccess();
+  } catch (err) {
+    recordEngramFailure();
+    throw err;
+  }
+}
+
 export function prepareChatStream(
   providerMode: ProviderMode,
   body: ChatRequestBody,
@@ -188,46 +227,54 @@ export function prepareChatStream(
   env: ChatServerEnv,
   request: Request,
 ): PreparedChatStream {
+  let effectiveMode: ProviderMode = providerMode;
+
   if (providerMode === 'stateful-engram') {
     if (!env.ENGRAM_BASE_URL) {
       throw new Error('Missing ENGRAM_BASE_URL on the server.');
     }
 
-    const sentMessages = latestUserOnly(messages);
-    const model = getEngramModel(env, body.model);
-    const conversationId = getConversationId(body, messages);
-    const clarit = createClarit({
-      baseURL: env.ENGRAM_BASE_URL,
-      apiKey: env.ENGRAM_API_KEY,
-      adminApiKey: env.ENGRAM_ADMIN_API_KEY,
-    });
+    const { status } = getEngramHealth();
 
-    const result = streamText({
-      model: clarit(model),
-      messages: sentMessages,
-      abortSignal: request.signal,
-      providerOptions: {
-        clarit: {
-          conversationId,
-          turnNumber: body.turnNumber,
-          autoSaveSnapshot: true,
-          compatibilityMode: 'append-only',
+    if (status !== 'offline') {
+      const sentMessages = withEngramSystemPrompt(latestUserOnly(messages));
+      const model = getEngramModel(env, body.model);
+      const conversationId = getConversationId(body, messages);
+      const clarit = createClarit({
+        baseURL: env.ENGRAM_BASE_URL,
+        apiKey: env.ENGRAM_API_KEY,
+        adminApiKey: env.ENGRAM_ADMIN_API_KEY,
+      });
+
+      const result = streamText({
+        model: clarit(model),
+        messages: sentMessages,
+        abortSignal: request.signal,
+        providerOptions: {
+          clarit: {
+            conversationId,
+            turnNumber: body.turnNumber,
+            autoSaveSnapshot: true,
+          },
         },
-      },
-    });
+      });
 
-    return {
-      textStream: result.textStream,
-      providerMetadata: result.providerMetadata,
-      metadata: buildBaseMetadata(
-        providerMode,
-        model,
-        { ...body, conversationId },
-        messages,
-        sentMessages,
-        'engram-delta',
-      ),
-    };
+      return {
+        textStream: watchedStream(result.textStream),
+        providerMetadata: result.providerMetadata,
+        metadata: buildBaseMetadata(
+          providerMode,
+          model,
+          { ...body, conversationId },
+          messages,
+          sentMessages,
+          'engram-delta',
+        ),
+      };
+    }
+
+    // Engram is offline — fall through to simulated-engram
+    effectiveMode = 'simulated-engram';
   }
 
   const statelessProvider = getStatelessProvider(env);
@@ -239,23 +286,26 @@ export function prepareChatStream(
     request,
   );
 
-  const metadataMessages = providerMode === 'simulated-engram'
+  const metadataMessages = effectiveMode === 'simulated-engram'
     ? latestUserOnly(messages)
     : messages;
 
   const metadata = buildBaseMetadata(
-    providerMode,
+    effectiveMode,
     model,
     body,
     messages,
     metadataMessages,
-    providerMode === 'simulated-engram' ? 'engram-delta' : 'full-history',
+    effectiveMode === 'simulated-engram' ? 'engram-delta' : 'full-history',
     statelessProvider,
   );
 
-  if (providerMode === 'simulated-engram') {
+  if (effectiveMode === 'simulated-engram') {
     metadata.conversationId = getConversationId(body, messages);
     metadata.engram = { simulated: true, compatibilityResult: 'simulated' };
+    if (providerMode === 'stateful-engram') {
+      metadata.engram = { ...metadata.engram, fallback: true, fallbackReason: 'engram-offline' };
+    }
   }
 
   return {
