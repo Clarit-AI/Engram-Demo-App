@@ -93,6 +93,8 @@ interface ArcState {
   // --- Availability state ---
   availabilityState: AvailabilityState;
   setAvailabilityState: (state: AvailabilityState) => void;
+  engramAvailable: boolean;
+  setEngramAvailable: (available: boolean) => void;
 
   // --- Local debug controls ---
   debugHoldStateless: boolean;
@@ -137,6 +139,8 @@ export const useArcStore = create<ArcState>((set, get) => ({
 
   availabilityState: 'offline',
   setAvailabilityState: (availabilityState) => set({ availabilityState }),
+  engramAvailable: true,
+  setEngramAvailable: (engramAvailable) => set({ engramAvailable }),
 
   debugHoldStateless: true,
 

@@ -58,6 +58,7 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
   const appMode = useArcStore((s) => s.appMode);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
   const debugHoldStateless = useArcStore((s) => s.debugHoldStateless);
+  const engramAvailable = useArcStore((s) => s.engramAvailable);
   const liveMessages = useChatStore((s) => s.messages);
   const liveAssistantBuffer = useChatStore((s) => s.liveAssistantBuffer);
   // The inference mode locked at turn-send time — stable across UI toggles.
@@ -543,6 +544,7 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
         appMode={appMode}
         inferenceMode={inferenceMode}
         recordingMode={activeDemo?.recordingMode}
+        engramAvailable={engramAvailable}
       />
 
       {/* Timeline strip */}
@@ -556,13 +558,15 @@ function SimulatedDisclosure({
   appMode,
   inferenceMode,
   recordingMode,
+  engramAvailable,
 }: {
   mobile?: boolean;
   appMode: AppMode;
   inferenceMode: InferenceMode;
   recordingMode?: 'stateful' | 'stateless';
+  engramAvailable: boolean;
 }) {
-  const copy = getDisclosureCopy({ appMode, inferenceMode, recordingMode });
+  const copy = getDisclosureCopy({ appMode, inferenceMode, recordingMode, engramAvailable });
   if (!copy) return null;
 
   return (
@@ -598,16 +602,29 @@ function getDisclosureCopy({
   appMode,
   inferenceMode,
   recordingMode,
+  engramAvailable,
 }: {
   appMode: AppMode;
   inferenceMode: InferenceMode;
   recordingMode?: 'stateful' | 'stateless';
+  engramAvailable: boolean;
 }): DisclosureCopy | null {
   if (appMode === 'chat') {
-    if (inferenceMode !== 'stateful') return null;
+    if (inferenceMode === 'stateful') {
+      if (import.meta.env.VITE_STATEFUL_PROVIDER_MODE === 'stateful-engram' && engramAvailable) {
+        return {
+          label: 'Live Engram Session',
+          subtext: 'You are connected to a live Engram server. Conversation state is saved as a model-layer snapshot after each turn and restored at the start of the next — no history is retransmitted.',
+        };
+      }
+      return {
+        label: 'Simulated Environment',
+        subtext: 'The Engram backend is currently offline. This view simulates how the system retains context without transmitting the full history.',
+      };
+    }
     return {
-      label: 'Simulated Environment',
-      subtext: 'The Engram backend is currently offline. This view simulates how the system retains context without transmitting the full history.',
+      label: 'Stateless Session',
+      subtext: 'The full conversation history is sent with every request. No state is retained between turns at the model layer.',
     };
   }
 

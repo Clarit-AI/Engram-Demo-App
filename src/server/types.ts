@@ -94,6 +94,7 @@ export interface RateLimitMetadata {
   queueDepth?: number;
   provisionState?: string;
   statelessAvailable?: boolean;
+  engramAvailable?: boolean;
 }
 
 export interface ChatProviderMetadata {
@@ -110,6 +111,7 @@ export interface ChatProviderMetadata {
   rateLimit?: RateLimitMetadata;
   engram?: {
     simulated?: boolean;
+    fallback?: boolean;
     compatibilityResult?: string;
     fallbackReason?: string;
     snapshotSaved?: boolean;

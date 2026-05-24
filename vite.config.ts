@@ -10,6 +10,7 @@ import { handleComparativeRecordingRequest } from './src/server/comparativeRecor
 import { handleSessionRequest } from './src/server/session'
 import { handleRedeemRequest, handleScheduleAdminRequest } from './src/server/redeemHandler'
 import { initScheduleFromEnv } from './src/server/schedule'
+import { startEngramHealthMonitor } from './src/server/engramHealth'
 import { parseInviteCodes } from './src/server/codes'
 import type { ChatServerEnv } from './src/server/types'
 
@@ -51,11 +52,18 @@ async function writeResponse(
     return;
   }
 
+  // Disable Nagle and flush headers immediately so SSE token chunks reach
+  // the browser without waiting for the TCP stack to fill a full packet.
+  (res.socket as { setNoDelay?: (v: boolean) => void } | null)?.setNoDelay?.(true);
+  res.flushHeaders();
+
   const reader = response.body.getReader();
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
     res.write(Buffer.from(value));
+    // Push through any compression middleware that buffers before sending.
+    (res as unknown as { flush?: () => void }).flush?.();
   }
   res.end();
 }
@@ -229,6 +237,7 @@ export default defineConfig(({ mode }) => {
           initScheduleFromEnv(serverEnv);
           parseInviteCodes(serverEnv.INVITE_CODES);
           initDb();
+          startEngramHealthMonitor(serverEnv);
           try {
             initProvisionStateFromDb();
           } catch {

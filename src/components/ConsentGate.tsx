@@ -40,16 +40,18 @@ export function ConsentGate() {
   const consented = useArcStore((s) => s.consented);
   const setConsented = useArcStore((s) => s.setConsented);
   const setAvailabilityState = useArcStore((s) => s.setAvailabilityState);
+  const setEngramAvailable = useArcStore((s) => s.setEngramAvailable);
   useDemoSessionHeartbeat(consented);
 
   const rateLimit = useSessionStore((s) => s.rateLimit);
 
-  // Keep arcStore.availabilityState in sync with the live provision state from the session heartbeat.
+  // Keep arcStore.availabilityState and engramAvailable in sync with the session heartbeat.
   useEffect(() => {
     if (rateLimit) {
       setAvailabilityState(mapProvisionToAvailability(rateLimit.provisionState, rateLimit.statelessAvailable));
+      setEngramAvailable(rateLimit.engramAvailable ?? true);
     }
-  }, [rateLimit, setAvailabilityState]);
+  }, [rateLimit, setAvailabilityState, setEngramAvailable]);
 
   useEffect(() => {
     const markConsented = () => setConsented(true);

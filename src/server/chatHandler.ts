@@ -10,7 +10,6 @@ import type {
   ChatProviderMetadata,
   ChatRequestBody,
   ChatServerEnv,
-  ChatSseDelta,
   ChatSseError,
 } from './types';
 
@@ -179,8 +178,7 @@ export async function handleChatRequest(
 
       try {
         for await (const text of prepared.textStream) {
-          const payload: ChatSseDelta = { text };
-          controller.enqueue(sse('delta', payload));
+          controller.enqueue(sse('delta', { text }));
         }
 
         const providerMetadata = await prepared.providerMetadata;
