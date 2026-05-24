@@ -129,41 +129,64 @@ export default defineConfig(({ mode }) => {
       {
         name: 'clarit-chat-api',
         configureServer(server) {
-          server.middlewares.use('/api/chat', async (req, res) => {
+          // Wrap each handler so an unhandled rejection (e.g. DB unavailable,
+          // native module not built for current Node.js version) returns a 503
+          // instead of crashing the Vite dev-server process.
+          function safeHandler(
+            handler: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>,
+          ) {
+            return async (
+              req: import('node:http').IncomingMessage,
+              res: import('node:http').ServerResponse,
+              next: () => void,
+            ) => {
+              try {
+                await handler(req, res);
+              } catch (err) {
+                console.error('[clarit-chat-api] unhandled error in middleware:', err);
+                if (!res.headersSent) {
+                  res.writeHead(503, { 'content-type': 'application/json' });
+                  res.end(JSON.stringify({ error: 'Service temporarily unavailable.' }));
+                }
+              }
+            };
+          }
+
+          server.middlewares.use('/api/chat', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleChatRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/session', async (req, res) => {
+          server.middlewares.use('/api/session', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleSessionRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/recording/export', async (req, res) => {
+          server.middlewares.use('/api/recording/export', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleRecordingExportRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/recording/comparative', async (req, res) => {
+          server.middlewares.use('/api/recording/comparative', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleComparativeRecordingRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/redeem', async (req, res) => {
+          server.middlewares.use('/api/redeem', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleRedeemRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
-          server.middlewares.use('/api/admin/schedule', async (req, res) => {
+          server.middlewares.use('/api/admin/schedule', safeHandler(async (req, res) => {
             const request = requestFromNode(req, await readBody(req));
             const response = await handleScheduleAdminRequest(request, serverEnv);
             await writeResponse(res, response);
-          });
+          }));
 
           // Initialize schedule, codes, and database from env
           initScheduleFromEnv(serverEnv);

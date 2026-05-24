@@ -18,7 +18,7 @@
     "@heroui/react": "^3.0.1",
     "@tailwindcss/vite": "^4.2.2",
     "ai": "^6.0.168",
-    "better-sqlite3": "^11.9.0",
+    "better-sqlite3": "^11.10.0",
     "framer-motion": "^12.38.0",
     "gsap": "^3.15.0",
     "lucide-react": "^1.7.0",
