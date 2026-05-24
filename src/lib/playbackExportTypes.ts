@@ -19,6 +19,8 @@ export interface PlaybackExportFile {
     createdAt: number;
     updatedAt: number;
     mode: 'stateless' | 'stateful';
+    /** The inference mode under which the session was originally recorded. */
+    recordingMode: 'stateless' | 'stateful';
     model: string;
   };
   turnPayloads: Array<{

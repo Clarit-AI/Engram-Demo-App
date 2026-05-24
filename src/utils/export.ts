@@ -9,6 +9,8 @@ export interface PlaybackExportInput {
   model: string;
   title?: string;
   mode?: 'stateless' | 'stateful';
+  /** The inference mode under which the session was originally recorded. */
+  recordingMode?: 'stateless' | 'stateful';
 }
 
 function makeId(): string {
@@ -56,6 +58,7 @@ export function buildPlaybackExport(input: PlaybackExportInput): PlaybackExportF
   const updatedAt = input.messages[input.messages.length - 1]?.timestamp ?? now;
   const title = input.title?.trim() || deriveTitle(input.messages);
   const mode = input.mode ?? input.recordingTurns[input.recordingTurns.length - 1]?.mode ?? 'stateless';
+  const recordingMode = input.recordingMode ?? 'stateless';
 
   return {
     conversation: {
@@ -71,6 +74,7 @@ export function buildPlaybackExport(input: PlaybackExportInput): PlaybackExportF
       createdAt,
       updatedAt,
       mode,
+      recordingMode,
       model: input.model,
     },
     turnPayloads: input.recordingTurns.map((turn) => ({

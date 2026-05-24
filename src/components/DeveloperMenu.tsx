@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { useArcStore } from '../store/arcStore';
+import { useSessionStore } from '../store/sessionStore';
 
 export const DeveloperMenu = memo(function DeveloperMenu() {
   const [expanded, setExpanded] = useState(false);
@@ -10,6 +11,17 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
   const phase = useArcStore((s) => s.phase);
   const setPhase = useArcStore((s) => s.setPhase);
   const canReveal = phase === 'peaking';
+
+  const sessionStatus = useSessionStore((s) => s.status);
+  const session = useSessionStore((s) => s.session);
+  const rateLimit = useSessionStore((s) => s.rateLimit);
+  const errorMessage = useSessionStore((s) => s.errorMessage);
+
+  const sessionLabel = session
+    ? `${session.idPreview} · ${rateLimit?.requestsThisMinute ?? session.requestsThisMinute}/${rateLimit?.maxRequestsPerMinute ?? '-'} req · ${rateLimit?.globalInFlight ?? session.inFlight} live · q:${rateLimit?.queueDepth ?? 0}`
+    : sessionStatus === 'error'
+      ? 'session error'
+      : 'session pending';
 
   const visible = import.meta.env.VITE_SESSION_DEBUG === 'true';
   if (!visible) return null;
@@ -27,7 +39,7 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
   };
 
   return (
-    <div className="fixed right-0 top-1/2 z-50 flex items-center">
+    <div className="fixed right-0 inset-y-0 z-50 flex items-center">
       {/* Expanded panel */}
       {expanded && (
         <div
@@ -49,10 +61,26 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
             </button>
           </div>
 
+          {/* Session Debug Info */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wide">Session Debug</span>
+            <div
+              className="min-h-9 flex items-center rounded-full px-3 font-mono text-[8px] font-semibold uppercase tracking-[0.12em]"
+              style={{
+                background: sessionStatus === 'error' ? 'rgba(220,38,38,0.10)' : 'rgba(25,28,30,0.06)',
+                border: sessionStatus === 'error' ? '1px solid rgba(220,38,38,0.22)' : '1px solid rgba(25,28,30,0.10)',
+                color: sessionStatus === 'error' ? '#dc2626' : '#111827',
+              }}
+              title={errorMessage || 'Local session and rate-limit debug readout'}
+            >
+              {sessionLabel}
+            </div>
+          </div>
+
           {/* Availability Status */}
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wide">Availability Status</span>
-            <span className="text-[9px] leading-relaxed opacity-60">
+            <span className="text-[9px] leading-relaxed text-[#111827]">
               Controls whether the "Actually chat" button is active. Live = system is running. Invite Required = system needs an access code. Offline = system is down.
             </span>
             <div className="flex gap-1 mt-1">
@@ -84,8 +112,8 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
                           ? '#00c864'
                           : opt === 'code-required'
                             ? '#b45309'
-                            : '#6b7280'
-                        : '#6b7280',
+                            : '#111827'
+                        : '#111827',
                   }}
                 >
                   {availLabel[opt]}
@@ -97,7 +125,7 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
           {/* Hold Reveal */}
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wide">Hold Reveal</span>
-            <span className="text-[9px] leading-relaxed opacity-60">
+            <span className="text-[9px] leading-relaxed text-[#111827]">
               When ON: stops the automatic reveal from firing after the final demo turn. When OFF: reveal fires automatically once all turns are done. Useful for testing the reveal animation.
             </span>
             <button
@@ -108,7 +136,7 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
                 border: debugHoldStateless
                   ? '1px solid rgba(0,98,157,0.3)'
                   : '1px solid rgba(25,28,30,0.1)',
-                color: debugHoldStateless ? '#004B78' : '#6b7280',
+                color: debugHoldStateless ? '#004B78' : '#111827',
               }}
             >
               {debugHoldStateless ? 'ON — reveal paused' : 'OFF — reveal will fire'}
@@ -118,7 +146,7 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
           {/* Trigger Reveal */}
           <div className="flex flex-col gap-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wide">Trigger Reveal</span>
-            <span className="text-[9px] leading-relaxed opacity-60">
+            <span className="text-[9px] leading-relaxed text-[#111827]">
               Manually fires the stateful reveal animation at any time. Only active once the demo has reached the &quot;peaking&quot; phase — after all turns complete.
             </span>
             <button
@@ -131,7 +159,7 @@ export const DeveloperMenu = memo(function DeveloperMenu() {
               style={{
                 background: canReveal ? 'rgba(0,92,79,0.1)' : 'transparent',
                 border: canReveal ? '1px solid rgba(0,92,79,0.3)' : '1px solid rgba(25,28,30,0.1)',
-                color: canReveal ? '#005C4F' : '#9CA3AF',
+                color: canReveal ? '#005C4F' : '#111827',
               }}
             >
               {canReveal ? 'Trigger Reveal Now' : 'Unavailable (not in peaking phase)'}
