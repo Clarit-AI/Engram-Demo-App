@@ -142,7 +142,7 @@ export const useArcStore = create<ArcState>((set, get) => ({
   engramAvailable: true,
   setEngramAvailable: (engramAvailable) => set({ engramAvailable }),
 
-  debugHoldStateless: true,
+  debugHoldStateless: false,
 
   setAppMode: (mode) => set({ appMode: mode }),
   setInferenceMode: (mode) => set({ inferenceMode: mode }),

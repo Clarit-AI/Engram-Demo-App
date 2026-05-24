@@ -1,5 +1,6 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, type CSSProperties } from 'react';
 import { useArcStore } from '../store/arcStore';
+import { useChatStore } from '../store/chatStore';
 import { StateBadge } from './StateBadge';
 import {
   computeTurnMetrics,
@@ -31,6 +32,8 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
   const phase = useArcStore((s) => s.phase);
   const revealStep = useArcStore((s) => s.revealStep);
   const inferenceMode = useArcStore((s) => s.inferenceMode);
+  const appMode = useArcStore((s) => s.appMode);
+  const lastMetadata = useChatStore((s) => s.lastMetadata);
 
   const turn = Math.max(1, currentTurn);
 
@@ -45,6 +48,26 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
       (revealStep === 'compact-streaming' ||
         revealStep === 'badge' ||
         revealStep === 'finalized'));
+
+  const configuredStatefulMode = import.meta.env.VITE_STATEFUL_PROVIDER_MODE as string | undefined;
+  type StatusLabel = 'PLAYBACK' | 'ENGRAM ACTIVE' | 'SIMULATED' | 'LIVE' | null;
+  const statusLabel: StatusLabel = appMode === 'demo'
+    ? 'PLAYBACK'
+    : appMode === 'chat'
+      ? inferenceMode === 'stateful'
+        ? (lastMetadata?.providerMode ?? configuredStatefulMode) === 'stateful-engram'
+          ? 'ENGRAM ACTIVE'
+          : 'SIMULATED'
+        : 'LIVE'
+      : null;
+
+  const statusStyle: CSSProperties = statusLabel === 'ENGRAM ACTIVE'
+    ? { color: 'var(--secondary-container)', background: 'rgba(104,250,221,0.12)', border: '1px solid rgba(104,250,221,0.28)' }
+    : statusLabel === 'SIMULATED'
+      ? { color: 'rgba(232,148,96,0.95)', background: 'rgba(232,148,96,0.10)', border: '1px solid rgba(232,148,96,0.24)' }
+      : statusLabel === 'LIVE'
+        ? { color: 'rgba(0,163,255,0.95)', background: 'rgba(0,163,255,0.10)', border: '1px solid rgba(0,163,255,0.24)' }
+        : { color: 'rgba(255,255,255,0.55)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)' };
 
   const metrics = useMemo(() => {
     if (!activeDemo) return null;
@@ -73,18 +96,27 @@ export const ReReadHUD = memo(function ReReadHUD({ mobile = false }: { mobile?: 
 
   return (
     <div className={mobile ? 'absolute left-3 right-3 top-3 z-20 pointer-events-none' : 'absolute left-8 right-8 top-4 z-20 pointer-events-none'}>
-      <div className={mobile ? 'glass-chip-dark flex items-center justify-between gap-3 rounded-2xl px-4 py-3 ambient-shadow-dark' : 'glass-chip-dark flex items-center justify-between gap-5 rounded-2xl px-5 py-3 ambient-shadow-dark'}>
-        <div className="flex min-w-0 items-center gap-2.5">
-          <StateBadge mode={isStateful ? 'stateful' : 'stateless'} pane="agent" />
-          <div
-            className="font-display text-[15px] font-bold tracking-tight"
-            style={{ color: 'var(--on-surface-dark)' }}
-          >
-            What Agents See
-          </div>
+      <div className={mobile ? 'glass-chip-dark grid items-center rounded-2xl px-4 py-3 ambient-shadow-dark' : 'glass-chip-dark grid items-center rounded-2xl px-5 py-3 ambient-shadow-dark'} style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+        <div
+          className="font-display text-[15px] font-bold tracking-tight"
+          style={{ color: 'var(--on-surface-dark)' }}
+        >
+          What Agents See
         </div>
 
-        <div className={mobile ? 'flex shrink-0 items-center gap-3' : 'flex shrink-0 items-center gap-5'}>
+        <div className="flex items-center justify-center gap-1.5">
+          <StateBadge mode={isStateful ? 'stateful' : 'stateless'} pane="agent" />
+          {statusLabel && (
+            <span
+              className="inline-flex shrink-0 items-center rounded-md px-2 py-[5px] font-mono text-[8px] font-bold uppercase tracking-[0.12em]"
+              style={statusStyle}
+            >
+              {statusLabel}
+            </span>
+          )}
+        </div>
+
+        <div className={mobile ? 'flex shrink-0 items-center justify-end gap-3' : 'flex shrink-0 items-center justify-end gap-5'}>
           <MetricLabel label="Turn" value={`${turn} / ${totalTurns || turnsCap}`} />
           <div>
             <div
