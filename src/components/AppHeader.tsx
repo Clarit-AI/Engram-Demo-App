@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { useArcStore } from '../store/arcStore';
 import { useChatStore } from '../store/chatStore';
-import { BrandMark } from './BrandMark';
+import { BrandMark, PoweredByOvh } from './BrandMark';
 import { RecordingExportControl } from './RecordingExportControl';
 import { DEFAULT_LIVE_MODEL } from '../services/inferenceProvider';
 
@@ -74,6 +74,14 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
             tone="primary"
             className={mobile ? 'h-[22px] w-[92px]' : 'h-[28px] w-[120px]'}
           />
+          {mobile && (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span className="font-mono text-[7px] uppercase tracking-[0.14em] text-text-muted">
+                By
+              </span>
+              <BrandMark brand="ovh" tone="primary" className="h-[10px] w-[62px]" />
+            </div>
+          )}
           <div
             className="hidden flex-col rounded-full px-3 py-1.5 font-mono uppercase sm:inline-flex"
             style={{
@@ -90,6 +98,12 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
             </span>
           </div>
         </div>
+
+        {!mobile && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+            <PoweredByOvh />
+          </div>
+        )}
 
         <div
           className={

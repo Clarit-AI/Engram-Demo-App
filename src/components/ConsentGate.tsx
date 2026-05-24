@@ -62,12 +62,12 @@ export function ConsentGate() {
         translations: {
           en: {
             consentModal: {
-              title: envText('VITE_CONSENT_MODAL_TITLE', 'Ngram demonstration'),
+              title: envText('VITE_CONSENT_MODAL_TITLE', 'Cookie consent'),
               description: envText(
                 'VITE_CONSENT_MODAL_DESCRIPTION',
-                'This interactive simulation uses required cookies to keep a short-lived session, track active usage, and protect the live model from overload. By continuing, you acknowledge that the experience may connect to live inference providers and that request volume may be limited while the system is under test.',
+                'We use required cookies to keep your session active and protect the service from overload. See our <a href="https://clarit.ai/cookie-policy" rel="noopener" target="_blank">cookie policy</a> and <a href="https://clarit.ai/privacy" rel="noopener" target="_blank">privacy policy</a> for details.',
               ),
-              acceptAllBtn: envText('VITE_CONSENT_MODAL_ACCEPT', 'Start the simulation'),
+              acceptAllBtn: envText('VITE_CONSENT_MODAL_ACCEPT', 'Accept'),
               footer: envText('VITE_CONSENT_MODAL_FOOTER', ''),
             },
             preferencesModal: {

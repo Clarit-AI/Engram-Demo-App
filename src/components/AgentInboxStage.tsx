@@ -226,8 +226,19 @@ function RequestBubble({
   const isStateful = bundle.mode === 'stateful';
   const isStateless = bundle.mode === 'stateless';
   const fullLength = transcriptLength(bundle);
-  const visibleChars = active ? Math.floor(fullLength * clamp01(requestProgress)) : fullLength;
-  const typing = active && visibleChars > 0 && visibleChars < fullLength;
+  // Track max length so visibleChars can only grow as responseContent grows.
+  // Monotonically non-decreasing — no stale value in practice.
+   
+  const maxFullLengthRef = useRef(fullLength);
+  // eslint-disable-next-line react-hooks/refs
+  if (fullLength > maxFullLengthRef.current) maxFullLengthRef.current = fullLength;
+  // eslint-disable-next-line react-hooks/refs
+  const clampedFullLength = maxFullLengthRef.current;
+   
+  const visibleChars = active
+    ? Math.floor(clampedFullLength * clamp01(requestProgress))
+    : fullLength;
+  const typing = active && visibleChars > 0 && visibleChars < clampedFullLength;
 
   return (
     <motion.div
