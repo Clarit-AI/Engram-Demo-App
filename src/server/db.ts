@@ -80,8 +80,8 @@ export function dbEnqueue(entry: {
   enqueuedAt: number;
   timeoutAt: number;
 }): void {
-  const db = getDb();
-  db.prepare(`
+  if (!_db) return; // DB unavailable — queue management silently disabled
+  _db.prepare(`
     INSERT INTO queue_entries (session_id, enqueued_at, code_type, priority_rank, timeout_at)
     VALUES (?, ?, ?, ?, ?)
   `).run(
@@ -100,8 +100,8 @@ export interface DequeuedEntry {
 }
 
 export function dbDequeue(timeoutBefore: number): DequeuedEntry | null {
-  const db = getDb();
-  const row = db.prepare(`
+  if (!_db) return null; // DB unavailable — no queue entries
+  const row = _db.prepare(`
     DELETE FROM queue_entries
      WHERE rowid = (
        SELECT rowid FROM queue_entries
@@ -122,13 +122,13 @@ export function dbDequeue(timeoutBefore: number): DequeuedEntry | null {
 }
 
 export function dbRemoveFromQueue(sessionId: string): void {
-  const db = getDb();
-  db.prepare('DELETE FROM queue_entries WHERE session_id = ?').run(sessionId);
+  if (!_db) return; // DB unavailable — no-op
+  _db.prepare('DELETE FROM queue_entries WHERE session_id = ?').run(sessionId);
 }
 
 export function dbQueueCount(): number {
-  const db = getDb();
-  const row = db.prepare('SELECT COUNT(*) as cnt FROM queue_entries').get() as { cnt: number };
+  if (!_db) return 0; // DB unavailable — treat queue as empty
+  const row = _db.prepare('SELECT COUNT(*) as cnt FROM queue_entries').get() as { cnt: number };
   return row.cnt;
 }
 
