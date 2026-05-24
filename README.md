@@ -42,9 +42,23 @@ Full references:
 ```bash
 npm run dev      # start Vite dev server
 npm run lint     # run ESLint
-npm run build    # type-check and build
-npm run preview  # preview built output
+npm run build    # type-check, build the client, and bundle the Node server
+npm run preview  # preview built client output only
+npm run start    # run the production Node server from server-dist
 ```
+
+## Deployment
+
+The Dokploy deployment path uses Railpack with `railpack.json`. Railpack should
+run `npm run build`, then start the container with `npm run start`. The production
+server serves the Vite `dist` assets and mounts the same `/api/*` handlers used
+in local development.
+
+Set `PORT` in Dokploy if the platform does not inject one automatically. The
+server binds to `0.0.0.0` by default for container traffic.
+
+Launch metadata, social preview tags, and Google Analytics are configured in
+`index.html`. The social preview and crawler files live in `public/`.
 
 ## Notes
 

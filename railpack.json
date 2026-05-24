@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "deploy": {
+    "startCommand": "npm run start",
+    "variables": {
+      "NODE_ENV": "production",
+      "HOST": "0.0.0.0"
+    }
+  }
+}

@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+server-dist
 
 # Local env / secrets. Keep examples tracked, never real values.
 .env
