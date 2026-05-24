@@ -58,7 +58,10 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
   };
 
   const handleActuallyChat = () => {
-    if (availabilityState === 'offline') return;
+    if (
+      import.meta.env.VITE_DEV_BYPASS_AVAILABILITY !== 'true' &&
+      availabilityState === 'offline'
+    ) return;
     setAppMode('chat');
     // Align currentTurn with the actual live chat conversation length, so that we don't carry over the demo's turn count and render ghost artifacts.
     const liveMessages = useChatStore.getState().messages;
@@ -155,7 +158,10 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
           <button
             type="button"
             onClick={handleActuallyChat}
-            disabled={availabilityState === 'offline'}
+            disabled={
+              import.meta.env.VITE_DEV_BYPASS_AVAILABILITY !== 'true' &&
+              availabilityState === 'offline'
+            }
             className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors disabled:opacity-40"
             style={{
               background: appMode === 'chat' ? 'rgba(0,98,157,0.08)' : 'var(--surface-container-high)',
