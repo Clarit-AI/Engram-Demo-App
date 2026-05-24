@@ -199,6 +199,32 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               >
                 Reveal
               </button>
+              <button
+                type="button"
+                title={`Availability: ${availabilityState} — click to cycle`}
+                onClick={() => {
+                  const next: Array<'offline' | 'code-required' | 'open'> = ['offline', 'code-required', 'open'];
+                  const idx = next.indexOf(availabilityState);
+                  useArcStore.getState().setAvailabilityState(next[(idx + 1) % next.length]);
+                }}
+                className="rounded-full px-2.5 py-1.5 font-mono text-[8px] font-bold uppercase tracking-[0.14em]"
+                style={{
+                  background:
+                    availabilityState === 'open'
+                      ? 'rgba(0,200,100,0.12)'
+                      : availabilityState === 'code-required'
+                        ? 'rgba(255,180,0,0.12)'
+                        : 'transparent',
+                  color:
+                    availabilityState === 'open'
+                      ? '#00c864'
+                      : availabilityState === 'code-required'
+                        ? '#b45309'
+                        : '#111827',
+                }}
+              >
+                Avail
+              </button>
             </div>
           )}
           {!mobile && <RecordingExportControl />}
