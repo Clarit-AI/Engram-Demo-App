@@ -34,9 +34,22 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
   const setDebugHoldStateless = useArcStore((s) => s.setDebugHoldStateless);
   const activeDemo = useArcStore((s) => s.activeDemo);
 
+  const availabilityState = useArcStore((s) => s.availabilityState);
   const isStateful = inferenceMode === 'stateful';
   const canReveal = phase === 'peaking';
   const currentModel = appMode === 'chat' ? DEFAULT_LIVE_MODEL : (activeDemo?.model || DEFAULT_LIVE_MODEL);
+
+  const availabilityLabel =
+    availabilityState === 'open' ? 'Live' :
+    availabilityState === 'code-required' ? 'Invite required' : 'Offline';
+  const availabilityColor =
+    availabilityState === 'open' ? 'rgba(0,200,100,0.12)' :
+    availabilityState === 'code-required' ? 'rgba(255,180,0,0.12)' :
+    'rgba(134,146,166,0.10)';
+  const availabilityBorder =
+    availabilityState === 'open' ? '1px solid rgba(0,200,100,0.28)' :
+    availabilityState === 'code-required' ? '1px solid rgba(255,180,0,0.28)' :
+    '1px solid rgba(134,146,166,0.18)';
 
   const handleReplay = () => {
     setAppMode('demo');
@@ -45,6 +58,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
   };
 
   const handleActuallyChat = () => {
+    if (availabilityState === 'offline') return;
     setAppMode('chat');
     // Align currentTurn with the actual live chat conversation length, so that we don't carry over the demo's turn count and render ghost artifacts.
     const liveMessages = useChatStore.getState().messages;
@@ -82,6 +96,25 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
               <BrandMark brand="ovh" tone="primary" className="h-[10px] w-[62px]" />
             </div>
           )}
+          {/* Availability badge from main */}
+          <div
+            className={[
+              'hidden flex-col rounded-full px-3 py-1.5 font-mono uppercase sm:inline-flex',
+              availabilityState === 'open' ? 'text-[#00c864]' : availabilityState === 'code-required' ? 'text-amber' : 'text-text-muted',
+            ].join(' ')}
+            style={{
+              background: availabilityColor,
+              border: availabilityBorder,
+            }}
+          >
+            <span className="text-[6px] font-semibold tracking-[0.18em] opacity-60">
+              Demo
+            </span>
+            <span className="text-[8px] font-semibold tracking-[0.16em]">
+              {availabilityLabel}
+            </span>
+          </div>
+          {/* Current view pill - our version */}
           <div
             className="hidden flex-col rounded-full px-3 py-1.5 font-mono uppercase sm:inline-flex"
             style={{
@@ -122,7 +155,8 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
           <button
             type="button"
             onClick={handleActuallyChat}
-            className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] transition-colors"
+            disabled={availabilityState === 'offline'}
+            className="min-h-9 rounded-full px-3.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors disabled:opacity-40"
             style={{
               background: appMode === 'chat' ? 'rgba(0,98,157,0.08)' : 'var(--surface-container-high)',
               border: appMode === 'chat' ? '1px solid rgba(0,98,157,0.24)' : '1px solid rgba(25,28,30,0.16)',

@@ -3,9 +3,14 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { initDb } from './src/server/db';
+import { initProvisionStateFromDb } from './src/server/ovhProvision';
 import { handleChatRequest } from './src/server/chatHandler'
 import { handleComparativeRecordingRequest } from './src/server/comparativeRecorder'
 import { handleSessionRequest } from './src/server/session'
+import { handleRedeemRequest, handleScheduleAdminRequest } from './src/server/redeemHandler'
+import { initScheduleFromEnv } from './src/server/schedule'
+import { parseInviteCodes } from './src/server/codes'
 import type { ChatServerEnv } from './src/server/types'
 
 async function readBody(req: import('node:http').IncomingMessage) {
@@ -115,6 +120,9 @@ export default defineConfig(({ mode }) => {
   } as ChatServerEnv;
 
   return {
+    optimizeDeps: {
+      include: ['ovh', 'better-sqlite3'],
+    },
     plugins: [
       react(),
       tailwindcss(),
@@ -144,6 +152,24 @@ export default defineConfig(({ mode }) => {
             const response = await handleComparativeRecordingRequest(request, serverEnv);
             await writeResponse(res, response);
           });
+
+          server.middlewares.use('/api/redeem', async (req, res) => {
+            const request = requestFromNode(req, await readBody(req));
+            const response = await handleRedeemRequest(request, serverEnv);
+            await writeResponse(res, response);
+          });
+
+          server.middlewares.use('/api/admin/schedule', async (req, res) => {
+            const request = requestFromNode(req, await readBody(req));
+            const response = await handleScheduleAdminRequest(request, serverEnv);
+            await writeResponse(res, response);
+          });
+
+          // Initialize schedule, codes, and database from env
+          initScheduleFromEnv(serverEnv);
+          parseInviteCodes(serverEnv.INVITE_CODES);
+          initDb();
+          initProvisionStateFromDb();
         },
       },
     ],
