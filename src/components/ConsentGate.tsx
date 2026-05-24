@@ -42,7 +42,7 @@ export function ConsentGate() {
 
   // Keep arcStore.availabilityState in sync with the live provision state from the session heartbeat.
   useEffect(() => {
-    if (rateLimit?.provisionState) {
+    if (rateLimit) {
       setAvailabilityState(mapProvisionToAvailability(rateLimit.provisionState));
     }
   }, [rateLimit, setAvailabilityState]);
