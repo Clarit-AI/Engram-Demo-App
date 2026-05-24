@@ -24,6 +24,7 @@ export const AppHeader = memo(function AppHeader({ mobile = false }: { mobile?: 
   const setPhase = useArcStore((s) => s.setPhase);
   const setAppMode = useArcStore((s) => s.setAppMode);
   const setTurn = useArcStore((s) => s.setTurn);
+  const activeDemo = useArcStore((s) => s.activeDemo);
 
   const availabilityState = useArcStore((s) => s.availabilityState);
   const isStateful = inferenceMode === 'stateful';
