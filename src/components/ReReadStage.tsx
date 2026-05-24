@@ -28,6 +28,7 @@ import {
   buildStatefulAgentRequestBundle,
   buildStatelessAgentRequestBundle,
 } from '../lib/agentRequestBundle';
+import type { AppMode } from '../store/arcStore';
 
 /**
  * Streaming pacing configuration.
@@ -526,7 +527,12 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
       )}
 
       {/* Simulated Disclosure Banner */}
-      <SimulatedDisclosure visible={inferenceMode === 'stateful'} mobile={mobile} />
+      <SimulatedDisclosure
+        visible={inferenceMode === 'stateful'}
+        mobile={mobile}
+        appMode={appMode}
+        recordingMode={activeDemo?.recordingMode}
+      />
 
       {/* Timeline strip */}
       <TimelineStrip mobile={mobile} />
@@ -534,14 +540,39 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
-function SimulatedDisclosure({ visible, mobile }: { visible: boolean; mobile?: boolean }) {
+function SimulatedDisclosure({
+  visible,
+  mobile,
+  appMode,
+  recordingMode,
+}: {
+  visible: boolean;
+  mobile?: boolean;
+  appMode: AppMode;
+  recordingMode?: 'stateful' | 'stateless';
+}) {
   if (!visible) return null;
-  
+
+  const isLive = appMode === 'chat';
+  const isStatefulRecording = recordingMode === 'stateful';
+
+  const label = isLive
+    ? 'Simulated Environment'
+    : isStatefulRecording
+      ? 'Recorded Session'
+      : 'Pre-recorded Simulated Session';
+
+  const subtext = isLive
+    ? 'The Engram backend is currently offline. This view simulates how the system retains context without transmitting the full history.'
+    : isStatefulRecording
+      ? 'This is a real Engram session previously recorded for demonstrative purposes.'
+      : 'This session was recorded statelessly and then reprocessed to emulate a stateful interaction.';
+
   return (
     <div className={mobile ? 'absolute bottom-[3.5rem] left-3 right-3 z-30 flex justify-center pointer-events-none' : 'absolute bottom-[4.5rem] left-8 right-8 z-30 flex justify-center pointer-events-none'}>
-      <div 
+      <div
         className="glass-chip-dark flex flex-col gap-1.5 rounded-xl px-4 py-3 ambient-shadow-dark max-w-[420px] backdrop-blur-md"
-        style={{ 
+        style={{
           background: 'rgba(16,27,40,0.85)',
           border: '1px solid rgba(104,250,221,0.25)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(104,250,221,0.1) inset'
@@ -550,11 +581,11 @@ function SimulatedDisclosure({ visible, mobile }: { visible: boolean; mobile?: b
         <div className="flex items-center gap-2">
           <span className="flex h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: 'var(--secondary-container)' }} />
           <span className="font-mono text-[9px] uppercase font-bold tracking-[0.2em]" style={{ color: 'var(--secondary-container)' }}>
-            Simulated Environment
+            {label}
           </span>
         </div>
         <p className="text-[11px] leading-relaxed opacity-90 font-sans" style={{ color: 'var(--on-surface-dark)' }}>
-          The Engram backend is currently offline. This view simulates how the system retains context without transmitting the full history.
+          {subtext}
         </p>
       </div>
     </div>

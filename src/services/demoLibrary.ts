@@ -34,6 +34,8 @@ export interface DemoMeta {
   messages: DemoMessage[];
   /** Optional real comparative metrics for exportVersion 3 recordings. */
   comparative?: ComparativePlaybackData;
+  /** Whether this demo was recorded as a genuine stateful session or post-processed from stateless. */
+  recordingMode?: 'stateful' | 'stateless';
 }
 
 export interface DemoMessage {
@@ -50,6 +52,7 @@ interface RawDemoFile {
     title?: string;
     model?: string;
     messages?: DemoMessage[];
+    recordingMode?: 'stateful' | 'stateless';
   };
   comparative?: ComparativeRecordingMetadata;
   totals?: ComparativeTotals;
@@ -115,6 +118,7 @@ function normalize(key: string, raw: RawDemoFile): DemoMeta | null {
     turnCount: userMsgs.length,
     messages: conv.messages,
     comparative: normalizeComparative(raw),
+    recordingMode: conv.recordingMode ?? 'stateless',
   };
 }
 
