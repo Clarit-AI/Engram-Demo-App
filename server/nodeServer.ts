@@ -93,9 +93,22 @@ function recordingExportEnabled(): boolean {
 }
 
 function sanitizeFilename(value: unknown): string {
-  const candidate = typeof value === 'string' ? value : 'simulation-playback.json';
-  const base = path.basename(candidate).replace(/[^a-zA-Z0-9._-]/g, '-');
-  return base.endsWith('.json') ? base : `${base}.json`;
+  const candidate = typeof value === 'string' ? value.trim() : 'simulation-playback.json';
+  const normalized = path.normalize(candidate);
+
+  if (
+    candidate.length === 0 ||
+    path.isAbsolute(candidate) ||
+    normalized.startsWith('..') ||
+    normalized.includes(`..${path.sep}`) ||
+    candidate.includes('..') ||
+    candidate !== path.basename(candidate) ||
+    !/^[a-zA-Z0-9._-]+$/.test(candidate)
+  ) {
+    throw new Error('Recording export filename must use only letters, numbers, dot, underscore, or dash.');
+  }
+
+  return candidate.endsWith('.json') ? candidate : `${candidate}.json`;
 }
 
 async function handleRecordingExportRequest(request: Request): Promise<Response> {
@@ -119,7 +132,13 @@ async function handleRecordingExportRequest(request: Request): Promise<Response>
   }
 
   const dir = path.resolve(process.cwd(), env.RECORDING_EXPORT_DIR || '.agent/recordings');
-  const filename = sanitizeFilename(body.filename);
+  let filename: string;
+  try {
+    filename = sanitizeFilename(body.filename);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid recording export filename.';
+    return jsonResponse({ error: message }, 400);
+  }
   const target = path.join(dir, filename);
 
   await mkdir(dir, { recursive: true });
