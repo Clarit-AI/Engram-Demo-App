@@ -173,6 +173,7 @@ export default defineConfig(({ mode }) => {
             initProvisionStateFromDb();
           } catch {
             // Provision state unavailable (e.g. missing native module) — non-fatal
+            // and intentionally silent to avoid noisy dev-server startup failures.
           }
         },
       },

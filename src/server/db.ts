@@ -53,6 +53,8 @@ export function initDb(dbPath?: string): void {
     );
   `);
   } catch {
+    // Database unavailable (e.g. missing native module on unsupported platforms).
+    // Intentionally silent — getDb() throws on access, isolating the failure.
     _db = null;
     return;
   }
