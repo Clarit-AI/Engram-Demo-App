@@ -14,6 +14,7 @@ export function useDeepLink() {
   const setInferenceMode = useArcStore((s) => s.setInferenceMode);
   const setActiveDemo = useArcStore((s) => s.setActiveDemo);
   const setPhase = useArcStore((s) => s.setPhase);
+  const setCatalog = useArcStore((s) => s.setCatalog);
   const turnsCap = useArcStore((s) => s.turnsCap);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export function useDeepLink() {
 
     if (segment === 'convo' && sub) {
       loadCatalog().then((catalog) => {
+        setCatalog(catalog);
         const match = catalog.find((d) => normalize(d.key) === normalize(sub));
         if (!match) return;
         return loadDemo(match.key).then((demo) => {
