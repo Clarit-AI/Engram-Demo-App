@@ -33,9 +33,12 @@ export function recordEngramFailure(): void {
   };
 }
 
-async function probeEngram(baseURL: string): Promise<void> {
+async function probeEngram(baseURL: string, apiKey?: string): Promise<void> {
   try {
+    const headers: Record<string, string> = {};
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
     const response = await fetch(`${baseURL}/v1/models`, {
+      headers,
       signal: AbortSignal.timeout(5_000),
     });
     if (response.ok) {
@@ -53,6 +56,7 @@ export function startEngramHealthMonitor(env: ChatServerEnv): void {
   monitorStarted = true;
 
   const baseURL = env.ENGRAM_BASE_URL;
-  void probeEngram(baseURL);
-  setInterval(() => void probeEngram(baseURL), 30_000);
+  const apiKey = env.ENGRAM_API_KEY;
+  void probeEngram(baseURL, apiKey);
+  setInterval(() => void probeEngram(baseURL, apiKey), 30_000);
 }
