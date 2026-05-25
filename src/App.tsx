@@ -6,6 +6,7 @@ import { MobileGuidedComparison } from './components/MobileGuidedComparison';
 import { AppHeader } from './components/AppHeader';
 import { ConsentGate } from './components/ConsentGate';
 import { DeveloperMenu } from './components/DeveloperMenu';
+import { useDeepLink } from './hooks/useDeepLink';
 
 
 /**
@@ -19,6 +20,7 @@ import { DeveloperMenu } from './components/DeveloperMenu';
  * landing experience — it starts playing on boot.
  */
 export default function App() {
+  useDeepLink();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
 
