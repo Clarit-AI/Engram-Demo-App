@@ -8,6 +8,7 @@ import {
   capDemoToTurns,
   DEFAULT_DEMO_KEY,
 } from '../services/demoLibrary';
+import { isDeepLinkPath } from '../hooks/useDeepLink';
 import {
   buildStatelessPayload,
   stringifyPayload,
@@ -74,15 +75,17 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
 
   // ---- Boot catalog once ----
   const booted = useRef(false);
+  // Check deep link synchronously before any async work so the URL-driven
+  // path (useDeepLink in App.tsx) owns the mode without a race.
+  const deepLink = useRef(isDeepLinkPath());
   useEffect(() => {
-    if (booted.current || activeDemo) return;
+    if (booted.current) return;
     booted.current = true;
     (async () => {
-      const [catalogResult, defaultDemo] = await Promise.all([
-        loadCatalog(),
-        loadDemo(DEFAULT_DEMO_KEY),
-      ]);
+      const catalogResult = await loadCatalog();
       setCatalog(catalogResult);
+      if (deepLink.current) return; // useDeepLink hook handles the rest
+      const defaultDemo = await loadDemo(DEFAULT_DEMO_KEY);
       setAppMode('demo');
       if (defaultDemo) {
         const capped = capDemoToTurns(defaultDemo.messages, turnsCap);
@@ -93,7 +96,7 @@ export function ReReadStage({ mobile = false }: { mobile?: boolean }) {
         });
       }
     })();
-  }, [activeDemo, setCatalog, setActiveDemo, setAppMode, turnsCap]);
+  }, [setCatalog, setActiveDemo, setAppMode, turnsCap]);
 
   // ---- Stream text for the CURRENT turn = request + delimiter + response ----
   // Demo mode: pre-recorded conversation drives both halves.
