@@ -58,6 +58,12 @@ function loadEngramSystemPrompt(): string {
 
 const ENGRAM_SYSTEM_PROMPT = loadEngramSystemPrompt();
 
+// Engram's append-only compatibility bridge restores prior turns server-side, so
+// the request must carry the FULL history (the bridge matches the snapshot as a
+// token prefix and only generates the continuation). maxNewTokens is required to
+// arm the fast-path — without it the provider falls back to a context-less call.
+const ENGRAM_MAX_NEW_TOKENS = 512;
+
 function withEngramSystemPrompt(messages: ChatMessageInput[]): ChatMessageInput[] {
   if (messages.some((m) => m.role === 'system')) return messages;
   return [{ role: 'system', content: ENGRAM_SYSTEM_PROMPT }, ...messages];
@@ -237,7 +243,7 @@ export function prepareChatStream(
     const { status } = getEngramHealth();
 
     if (status !== 'offline') {
-      const sentMessages = withEngramSystemPrompt(latestUserOnly(messages));
+      const sentMessages = withEngramSystemPrompt(messages);
       const model = getEngramModel(env, body.model);
       const conversationId = getConversationId(body, messages);
       const clarit = createClarit({
@@ -255,6 +261,8 @@ export function prepareChatStream(
             conversationId,
             turnNumber: body.turnNumber,
             autoSaveSnapshot: true,
+            compatibilityMode: 'append-only',
+            maxNewTokens: ENGRAM_MAX_NEW_TOKENS,
           },
         },
       });

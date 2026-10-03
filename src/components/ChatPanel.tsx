@@ -150,7 +150,12 @@ export function ChatPanel({ mobile = false }: { mobile?: boolean }) {
                     type="button"
                     role="radio"
                     aria-checked={active}
-                    onClick={() => setInferenceMode(mode)}
+                    onClick={() => {
+                      if (mode !== inferenceMode) {
+                        if (isChat) useChatStore.getState().reset();
+                        setInferenceMode(mode);
+                      }
+                    }}
                     className="relative rounded-[20px] px-3.5 py-[7px] font-mono text-[8px] font-bold uppercase tracking-[0.12em]"
                     style={{ color: active ? 'white' : '#8692A6', transition: 'color 0.2s ease' }}
                   >

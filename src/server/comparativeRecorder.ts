@@ -121,17 +121,15 @@ function normalizeMessagesForTokenizer(
 async function tokenizeChatCount(
   snapshots: ClaritSnapshotClient,
   messages: Array<{ role: ChatRole; content: string }>,
+  model: string,
 ): Promise<number> {
   const result = await snapshots.tokenizeChat({
     messages: normalizeMessagesForTokenizer(messages),
+    model,
     add_generation_prompt: true,
   });
 
-  if (!result.success) {
-    throw new Error(result.message || 'Engram tokenizer failed.');
-  }
-
-  return result.token_count ?? result.token_ids?.length ?? 0;
+  return result.count ?? result.tokens?.length ?? 0;
 }
 
 function numberFrom(metadata: SnapshotMetadata | undefined, keys: string[]): number | undefined {
@@ -337,7 +335,7 @@ async function generateEngramTurn(params: {
     ?? (engramMetadata?.snapshotSizeBytes !== undefined
       ? Math.round((engramMetadata.snapshotSizeBytes / (1024 * 1024)) * 10) / 10
       : snapshotSizeMb(snapshotMetadata));
-  const tokensProcessed = await tokenizeChatCount(params.snapshots, sentMessages);
+  const tokensProcessed = await tokenizeChatCount(params.snapshots, sentMessages, params.model);
 
   if (params.turnNumber > 1 && restoreLatencyMs === null) {
     throw new Error(`Missing real Engram restore latency for turn ${params.turnNumber}.`);
@@ -397,7 +395,7 @@ async function measureStatelessTurns(params: {
   const metrics: Array<{ cumulativeTokens: number; prefillLatencyMs: number }> = [];
 
   for (const history of histories) {
-    const cumulativeTokens = await tokenizeChatCount(params.snapshots, history.messages);
+    const cumulativeTokens = await tokenizeChatCount(params.snapshots, history.messages, params.model);
     const prefillLatencyMs = await measureDigitalOceanTtft(
       params.env,
       params.model,
